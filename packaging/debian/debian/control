@@ -1,0 +1,40 @@
+Source: edera
+Maintainer: Iskander Sitdikov <thoughteer@gmail.com>
+Section: python
+Priority: optional
+Standards-Version: 3.9.6
+Build-Depends:
+ debhelper (>= 9),
+ dh-python,
+ python-all,
+ python-setuptools,
+ python3-all,
+ python3-setuptools
+X-Python-Version: >= 2.7
+X-Python3-Version: >= 3.3
+
+Package: python-edera
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Edera (Python 2)
+ This package provides a distributed workflow management framework.
+ It features:
+  - a convenient mechanism to declare parameterizable tasks;
+  - an extensible dependency control model;
+  - a parallel stateless task executor;
+  - smart workflow optimization.
+ .
+ This package installs the library for Python 2.
+
+Package: python3-edera
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}
+Description: Edera (Python 3)
+ This package provides a distributed workflow management framework.
+ It features:
+  - a convenient mechanism to declare parameterizable tasks;
+  - an extensible dependency control model;
+  - a parallel stateless task executor;
+  - smart workflow optimization.
+ .
+ This package installs the library for Python 3.

@@ -1,0 +1,19 @@
+{% macro task_state(alias, state, labeling) -%}
+    <div class='task-label{% if state.phony %} phony{% endif %}'>
+        {{- "" -}}
+        <a href='{{ url_for("report", alias=alias) }}'>{{ labeling[alias] }}</a>
+        {{- "" -}}
+    </div>
+    <div class='task-name'>{{ state.name }}</div>
+    <div class='task-statuses'>
+        {%- if state.completed -%}
+            <div class='task-status completed'{% if state.span %} title='{{ state.span[0]|formattime }} &mdash; {{ state.span[1]|formattime }}'{% endif %}>completed{% if state.span %} in {{ state.span[1] - state.span[0] }}{% endif %}</div>
+        {%- endif %}
+        {%- if state.failures -%}
+            <div class='task-status failed'>failed at {{ state.failures.values()|max|formattime }}</div>
+        {%- endif -%}
+        {%- if state.runs -%}
+            <div class='task-status running'>running since {{ state.runs.values()|min|formattime }}</div>
+        {%- endif -%}
+    </div>
+{%- endmacro %}

@@ -1,0 +1,83 @@
+{% extends "page.html" %}
+
+{% from "macros/task_state.html" import task_state %}
+
+{% block content -%}
+    <div class='block'>
+        {%- set state = snapshot.reports[alias].state %}
+        <div class='block-head'>{{ task_state(alias, state, labeling) }}</div>
+        <div class='block-body'>
+        {%- if state.failures -%}
+            <div class='block-widget'>
+                <div class='block-widget-head failures'>Failures</div>
+                <div class='block-widget-body'>
+                    <ul>
+                    {%- for agent, timestamp in state.failures|dictsort %}
+                        <li title='at {{ state.failures[agent]|formattime }}'>
+                            {{- "" -}}
+                            <a href='#{{ agent|hashstring }}'>{{ agent }}</a>
+                            {{- "" -}}
+                        </li>
+                    {%- endfor %}
+                    </ul>
+                </div>
+            </div>
+        {%- endif -%}
+        {%- if state.runs -%}
+            <div class='block-widget'>
+                <div class='block-widget-head runs'>Runs</div>
+                <div class='block-widget-body'>
+                    <ul>
+                    {%- for agent, timestamp in state.runs|dictsort %}
+                        <li title='since {{ state.runs[agent]|formattime }}'>
+                            {{- "" -}}
+                            <a href='#{{ agent|hashstring }}'>{{ agent }}</a>
+                            {{- "" -}}
+                        </li>
+                    {%- endfor %}
+                    </ul>
+                </div>
+            </div>
+        {%- endif -%}
+        {%- if state.dependencies -%}
+            <div class='block-widget'>
+                <div class='block-widget-head dependencies'>Dependencies</div>
+                <div class='block-widget-body'>
+                    <ul>
+                    {%- set dependencies = labeling|selectkeys(state.dependencies) %}
+                    {%- for dependency, label in dependencies|dictsort(by="value") %}
+                        {%- set satisfied = snapshot.reports[dependency].state.completed %}
+                        <li{% if satisfied %} class='satisfied'{% endif %}>
+                            {{- "" -}}
+                            <a href='{{ url_for("report", alias=dependency) }}'>{{ label }}</a>
+                            {{- "" -}}
+                        </li>
+                    {%- endfor %}
+                    </ul>
+                </div>
+            </div>
+        {%- endif -%}
+        {%- if payload.logs -%}
+            <div></div><div class='block-widget'>
+                <div class='block-widget-head logs'>Logs</div>
+                <div class='block-widget-body'>
+                    <ul>
+                    {%- for agent, log in payload.logs|dictsort %}
+                        <li id='{{ agent|hashstring }}'>
+                            {{- agent -}}
+                            <div class='log'>
+                            {%- for timestamp, message in log|sort -%}
+                                <div class='log-message'>
+                                    {{- timestamp|formattime }} &mdash; {{ message|highlight -}}
+                                </div>
+                            {%- endfor -%}
+                            </div>
+                        </li>
+                    {%- endfor %}
+                    </ul>
+                </div>
+            </div>
+        {%- endif -%}
+        </div>
+    </div>
+{%- endblock %}

@@ -1,0 +1,19 @@
+{% extends "page.html" %}
+
+{% from "macros/task_state.html" import task_state %}
+
+{% block content -%}
+    {%- for alias, _ in ranking|dictsort(by="value") %}
+        {%- set state = snapshot.reports[alias].state %}
+        {%- if mode == "full" or not state.completed %}
+            <div class='block'>
+                <div class='block-head'>{{ task_state(alias, state, labeling) }}</div>
+            </div>
+        {%- endif %}
+    {%- endfor %}
+    <div class='footer'>
+    {%- if mode == "short" -%}
+        <a href='{{ url_for("index", mode="full") }}' title='Display completed tasks as well'><div class='action'>...</div></a>
+    {%- endif -%}
+    </div>
+{%- endblock %}

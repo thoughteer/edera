@@ -1,0 +1,162 @@
+body {
+    background-color: #FFFFFF;
+    color: #000000;
+    font-family: "Lucida Console", Monaco, monospace;
+    font-size: 100%;
+    margin: 0;
+}
+
+a, a:active, a:hover, a:visited {
+    color: inherit;
+    text-decoration: none;
+}
+
+ul {
+    list-style-position: outside;
+    list-style-type: none;
+    margin: 0 0 0 1em;
+    padding: 0;
+}
+
+li::before {
+    content: "\232A";
+    display: inline-block;
+    margin-right: -1em;
+    position: relative;
+    right: 1em;
+    vertical-align: top;
+    width: 1em;
+}
+
+h1 {
+    font-size: 2em;
+    text-align: center;
+}
+
+.header {
+    background-color: #000000;
+    color: #FFFFFF;
+    height: auto;
+    overflow: hidden;
+    padding: 0.75em 1.5em;
+}
+
+.timestamp {
+    float: right;
+    text-align: right;
+}
+
+.caption {
+    overflow: hidden;
+    width: auto;
+}
+
+.block {
+    margin: 1.5em;
+}
+
+.task-label {
+    font-size: 1.25em;
+    margin-bottom: 0.25em;
+}
+
+.phony::after {
+    color: #F25E04;
+    content: "phony";
+    font-size: 0.75em;
+    line-height: 0;
+    margin-left: 0.5em;
+    vertical-align: super;
+}
+
+.task-name {
+    color: #AAAAAA;
+    font-size: 0.8em;
+}
+
+.task-statuses {
+    font-size: 0.9em;
+    margin-top: 0.25em;
+}
+
+.task-status {
+    display: inline-block;
+    margin-right: 1.5em;
+    margin-top: 0.25em;
+}
+
+.completed {
+    color: #6EA400;
+}
+
+.failed {
+    color: #EC083C;
+}
+
+.running {
+    color: #007CBE;
+}
+
+.block-widget {
+    display: inline-block;
+    margin-left: 1.5em;
+    margin-top: 1.5em;
+    vertical-align: top;
+}
+
+.block-widget-head {
+    border-top: 0.05em solid;
+    padding: 0.5em;
+}
+
+.block-widget-body {
+    padding: 0 0.5em;
+}
+
+.failures {
+    color: #EC093C;
+}
+
+.runs {
+    color: #007CBE;
+}
+
+.dependencies {
+    color: #AAAAAA;
+}
+
+.satisfied {
+    text-decoration: line-through;
+}
+
+.logs {
+    color: #AAAAAA;
+}
+
+.log {
+    color: #AAAAAA;
+    border-left: 0.05em solid #AAAAAA;
+    margin: 0.5em;
+    padding-left: 0.5em;
+}
+
+.log a {
+    color: #F25E04;
+    text-decoration: underline;
+}
+
+.log-message {
+    white-space: pre;
+}
+
+.footer {
+    margin: 0.75em;
+}
+
+.action {
+    border: 0.05em solid #CCCCCC;
+    color: #444444;
+    display: inline-block;
+    margin: 0.75em;
+    padding: 0.5em 1em;
+}
