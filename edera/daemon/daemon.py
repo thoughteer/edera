@@ -160,7 +160,7 @@ class Daemon(object):
         multiprocessing.current_process().name = "-"
         threading.current_thread().name = "-"
         interruption_flag = InterProcessFlag()
-        with Sasha({signal.SIGINT: interruption_flag.up}):
+        with Sasha({signal.SIGINT: interruption_flag.up, signal.SIGTERM: interruption_flag.up}):
             logging.getLogger(__name__).info("Daemon starting")
             try:
                 self.__run[check_interruption_flag]()

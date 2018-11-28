@@ -67,7 +67,7 @@ def test_demo_daemon_works_fine_in_production_mode(tmpdir):
     try:
         assert not failure.is_set()
     finally:
-        process.send_signal(signal.SIGINT)
+        process.send_signal(signal.SIGTERM)
     time.sleep(30)
     assert process.poll() == 0
     process.communicate()
