@@ -11,9 +11,9 @@ class DFSLinearizer(Linearizer):
 
     def linearize(self, graph):
         unexplored = set(graph)
-        exploring = list()
+        exploring = []
         passing = set()
-        path = list()
+        path = []
         stack = []
         while unexplored:
             item = next(iter(unexplored))
