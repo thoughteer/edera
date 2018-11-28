@@ -6,8 +6,9 @@ import signal
 import socket
 import threading
 
-import iso8601
 import six
+
+import edera.helpers
 
 from edera.flags import InterProcessFlag
 from edera.flags import InterThreadFlag
@@ -173,7 +174,7 @@ class Daemon(object):
 
     @routine
     def __build(self, seeder, testable, tag, box):
-        root = seeder(datetime.datetime.now(iso8601.iso8601.UTC))
+        root = seeder(edera.helpers.now())
         workflow = self.builder.build(root)
         with self.manager:
             if testable and self.autotester is not None:
