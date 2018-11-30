@@ -13,12 +13,12 @@ def process_locker():
 
 
 @pytest.fixture
-def directory_locker(tmpdir):
+def directory_locker(debugger, tmpdir):
     return DirectoryLocker(str(tmpdir))
 
 
 @pytest.yield_fixture
-def zookeeper_locker(zookeeper):
+def zookeeper_locker(debugger, zookeeper):
     znode = "/" + uuid.uuid4().hex
     try:
         yield ZooKeeperLocker(zookeeper, znode)

@@ -59,7 +59,7 @@ def test_demo_daemon_works_fine_in_testing_mode(tmpdir):
     assert distribution == {0, 1, 2, 7, 11}
 
 
-def test_demo_daemon_works_fine_in_production_mode(tmpdir):
+def test_demo_daemon_works_fine_in_production_mode(debugger, tmpdir):
     command = ["python", "-m", "edera.demo.daemon", "-d", str(tmpdir), "-s", "0"]
     process = subprocess.Popen(command, stderr=subprocess.PIPE)
     failure = start_analysis(process.stderr)

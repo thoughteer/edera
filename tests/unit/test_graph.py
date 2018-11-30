@@ -46,23 +46,41 @@ def test_graph_allows_to_check_item_membership():
 
 
 def test_graph_allows_to_get_nodes_by_item_exemplar():
+
+    class LiteralX(object):
+
+        def __eq__(self, other):
+            return other == "x"
+
+        def __hash__(self):
+            return hash("x")
+
     graph = Graph()
-    item = (0, "o")
+    item = "x"
     with pytest.raises(AssertionError):
         graph[item]
     graph.add(item)
     assert graph[item].item is item
-    item_exemplar = (0, "o")
+    item_exemplar = LiteralX()
     assert item_exemplar is not item
     assert graph[item_exemplar].item is item
 
 
 def test_graph_allows_to_replace_items():
+
+    class LiteralX(object):
+
+        def __eq__(self, other):
+            return other == "x"
+
+        def __hash__(self):
+            return hash("x")
+
     graph = Graph()
-    item = (6, "b")
+    item = "x"
     graph.add(item)
     assert graph[item].item is item
-    new_item = (6, "b")
+    new_item = LiteralX()
     assert new_item is not item
     graph.replace(new_item)
     assert graph[item].item is new_item

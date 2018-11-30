@@ -1,0 +1,21 @@
+sudo: false
+services:
+  - docker
+language: python
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  # - "pypy"
+env:
+  - GROUP=unit
+  - GROUP=integration
+  - GROUP=system
+  - GROUP=performance
+if: tag IS blank
+matrix:
+  allow_failures:
+    - env: GROUP=performance
+install: pip install tox-travis
+script: ./ci/run-tests.sh

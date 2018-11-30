@@ -13,16 +13,16 @@ def test_invoker_runs_actions_in_parallel():
 
     def append_index(index):
         time.sleep(0.1 * index)
-        collection.append(index)
+        collection.put(index)
 
-    collection = multiprocessing.Manager().list()
+    collection = multiprocessing.Queue()
     actions = {
         "A": lambda: append_index(2),
         "B": lambda: append_index(1),
         "C": lambda: append_index(0),
     }
     MultiProcessInvoker(actions).invoke()
-    assert list(collection) == [0, 1, 2]
+    assert [collection.get(timeout=1) for _ in range(3)] == [0, 1, 2]
 
 
 def test_invoker_notifies_about_failures():
@@ -31,9 +31,9 @@ def test_invoker_notifies_about_failures():
         time.sleep(0.1 * index)
         if index % 2 == 0:
             raise RuntimeError("index must be odd")
-        collection.append(index)
+        collection.put(index)
 
-    collection = multiprocessing.Manager().list()
+    collection = multiprocessing.Queue()
     actions = {
         "A": lambda: append_index(3),
         "B": lambda: append_index(2),
@@ -42,24 +42,21 @@ def test_invoker_notifies_about_failures():
     }
     with pytest.raises(MasterSlaveInvocationError) as info:
         MultiProcessInvoker(actions).invoke()
-    assert len(list(info.value.failed_slaves)) == 2
-    assert list(collection) == [1, 3]
+    assert len(info.value.failed_slaves) == 2
+    assert [collection.get(timeout=1) for _ in range(2)] == [1, 3]
 
 
 def test_invoker_can_replicate_single_action():
 
     def increment():
         with mutex:
-            counter[0] += 1
-            if counter[0] == 15:
-                raise RuntimeError("reached the end")
+            counter.put(counter.get(timeout=1) + 1)
 
     mutex = multiprocessing.Lock()
-    counter = multiprocessing.Manager().list([0])
-    with pytest.raises(MasterSlaveInvocationError) as info:
-        MultiProcessInvoker.replicate(increment, count=15, prefix="P").invoke()
-    assert len(list(info.value.failed_slaves)) == 1
-    assert list(counter) == [15]
+    counter = multiprocessing.Queue()
+    counter.put(0)
+    MultiProcessInvoker.replicate(increment, count=15, prefix="P").invoke()
+    assert counter.get(timeout=1) == 15
 
 
 def test_invoker_interrupts_slaves_after_being_interrupted():
