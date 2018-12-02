@@ -64,7 +64,7 @@ def memoized(function):
 
 def now():
     """
-    Get current time in the UTC timezone.
+    Get current time in the UTC time zone.
 
     Returns:
         DateTime

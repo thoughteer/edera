@@ -2,6 +2,7 @@ __pycache__/
 !.vscode/
 *.pyc
 /.*/
+/.coverage
 /*.egg-info/
 /build/
 /dist/

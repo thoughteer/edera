@@ -17,5 +17,6 @@ if: tag IS blank
 matrix:
   allow_failures:
     - env: GROUP=performance
-install: pip install tox-travis
+install: pip install codecov tox-travis
 script: ./ci/run-tests.sh
+after_success: codecov
