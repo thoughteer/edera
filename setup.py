@@ -3,7 +3,7 @@ import setuptools
 
 configuration = {
     "name": "edera",
-    "version": "0.10",
+    "version": "0.10.1",
     "description": "A distributed workflow management framework",
     "classifiers": [
         "Development Status :: 4 - Beta",
