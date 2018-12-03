@@ -1,4 +1,5 @@
 sudo: false
+if: tag IS blank
 services:
   - docker
 language: python
@@ -18,7 +19,7 @@ matrix:
   allow_failures:
     - env: GROUP=performance
 install: pip install codecov tox-travis
-script: "./ci/run-tests.sh"
+script: ./ci/run-tests.sh
 after_success: codecov
 stages:
   - test
@@ -26,7 +27,7 @@ stages:
 jobs:
   include:
     - stage: release
-      if: branch = master AND tag IS present
+      if: branch = master
       python: 3.6
       install: skip
       script: skip
