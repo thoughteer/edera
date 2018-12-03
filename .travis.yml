@@ -7,16 +7,32 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-  # - "pypy"
+  # - pypy
+  # - pypy3.5
 env:
   - GROUP=unit
   - GROUP=integration
   - GROUP=system
   - GROUP=performance
-if: tag IS blank
 matrix:
   allow_failures:
     - env: GROUP=performance
 install: pip install codecov tox-travis
-script: ./ci/run-tests.sh
+script: "./ci/run-tests.sh"
 after_success: codecov
+stages:
+  - test
+  - release
+jobs:
+  include:
+    - stage: release
+      if: branch = master AND tag IS present
+      python: 3.6
+      install: skip
+      script: skip
+      deploy:
+        provider: pypi
+        user: thoughteer
+        password:
+          secure: LQOWXG+QV2a3gvW0wSSp9qc4GF8lJe4HOiFEi5a03bnpaR8+UXZYh6GZeprA7WN9hLyWFlmdnU84HkW2CthdZnkXdcjgNuacCnefjmBwG7AEvMGO0gIPC8t7KhnP/UXRcidZL2sy+hl/8SMY2JPEU2xiIIBldRnqE6Dyd2/JTy5ndnwRxDatw+MTt1c1kOQ6jqBClEWCRNU7ralHH5ooLvlhyNFQ3QUYa5myQ0tcnt4jWYT8xhyxJGJ1XkDx+/UAMYAdH5mMCzKkBIX+4YPyaQ+nKYX9CR0D7w9fowPX1eIgkcI/A9Jm5pe/UwX55znB4F/pvCskBSP0zRv7eg8B8RTfzap4DGtRF8ch7fAWQq/M+mgbqjv2xStfEkmUBlWfduxZlilpnFkyV5ooqf6I/GN5pdQ9f/ZN+u3AhIPcPu1TZb/HaFnHxUyXks0ghaieCCAXXg3m1P1AU8XIJcKkdpSfW8psDOzh+IDOIhmmxtr23InUw0vvcb0jpqCIpGskOmMFtAyMQHz8uiNsIhgk/hSnh75Yz0QHkpXk2OACw955F5+mKn/jCiFBHeYvpdv+aP+bU1s7deMt5NaCCX3TbIZyp7zM0l/ma0OJtDzkVOWCG3UyThOJ8j+zd0HdV0gh386xSNA+63mAsO4HllW63EURn4jGCxef3nS7oGn1yFM=
+        distributions: sdist bdist_wheel

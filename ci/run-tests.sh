@@ -20,7 +20,7 @@ then
     then
         BASE='master';
     else
-        exit 1
+        exit 0
     fi
     git config --replace-all remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
     git fetch origin "$BASE"
