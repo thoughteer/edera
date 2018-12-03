@@ -11,39 +11,37 @@ from edera.routine import routine
 
 def test_invoker_runs_actions_in_parallel():
 
-    def append_index(index):
-        time.sleep(0.1 * index)
+    def add_index(index):
         collection.put(index)
 
     collection = multiprocessing.Queue()
     actions = {
-        "A": lambda: append_index(2),
-        "B": lambda: append_index(1),
-        "C": lambda: append_index(0),
+        "A": lambda: add_index(2),
+        "B": lambda: add_index(1),
+        "C": lambda: add_index(0),
     }
     MultiProcessInvoker(actions).invoke()
-    assert [collection.get(timeout=1) for _ in range(3)] == [0, 1, 2]
+    assert {collection.get(timeout=1) for _ in range(3)} == {0, 1, 2}
 
 
 def test_invoker_notifies_about_failures():
 
-    def append_index(index):
-        time.sleep(0.1 * index)
+    def add_index(index):
         if index % 2 == 0:
             raise RuntimeError("index must be odd")
         collection.put(index)
 
     collection = multiprocessing.Queue()
     actions = {
-        "A": lambda: append_index(3),
-        "B": lambda: append_index(2),
-        "C": lambda: append_index(1),
-        "D": lambda: append_index(0),
+        "A": lambda: add_index(3),
+        "B": lambda: add_index(2),
+        "C": lambda: add_index(1),
+        "D": lambda: add_index(0),
     }
     with pytest.raises(MasterSlaveInvocationError) as info:
         MultiProcessInvoker(actions).invoke()
     assert len(info.value.failed_slaves) == 2
-    assert [collection.get(timeout=1) for _ in range(2)] == [1, 3]
+    assert {collection.get(timeout=1) for _ in range(2)} == {1, 3}
 
 
 def test_invoker_can_replicate_single_action():

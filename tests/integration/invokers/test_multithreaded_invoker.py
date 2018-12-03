@@ -11,39 +11,37 @@ from edera.routine import routine
 
 def test_invoker_runs_actions_in_parallel():
 
-    def append_index(index):
-        time.sleep(0.1 * index)
-        collection.append(index)
+    def add_index(index):
+        collection.add(index)
 
-    collection = []
+    collection = set()
     actions = {
-        "A": lambda: append_index(2),
-        "B": lambda: append_index(1),
-        "C": lambda: append_index(0),
+        "A": lambda: add_index(2),
+        "B": lambda: add_index(1),
+        "C": lambda: add_index(0),
     }
     MultiThreadedInvoker(actions).invoke()
-    assert collection == [0, 1, 2]
+    assert collection == {0, 1, 2}
 
 
 def test_invoker_notifies_about_failures():
 
-    def append_index(index):
-        time.sleep(0.1 * index)
+    def add_index(index):
         if index % 2 == 0:
             raise RuntimeError("index must be odd")
-        collection.append(index)
+        collection.add(index)
 
-    collection = []
+    collection = set()
     actions = {
-        "A": lambda: append_index(3),
-        "B": lambda: append_index(2),
-        "C": lambda: append_index(1),
-        "D": lambda: append_index(0),
+        "A": lambda: add_index(3),
+        "B": lambda: add_index(2),
+        "C": lambda: add_index(1),
+        "D": lambda: add_index(0),
     }
     with pytest.raises(MasterSlaveInvocationError) as info:
         MultiThreadedInvoker(actions).invoke()
     assert len(list(info.value.failed_slaves)) == 2
-    assert collection == [1, 3]
+    assert collection == {1, 3}
 
 
 def test_invoker_can_replicate_single_action():
