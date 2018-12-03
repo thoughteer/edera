@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.10.1
+
+* Made `Daemon` handle SIGTERM correctly
+* Fixed the snapshot updates dropping procedure in `MonitorWatcher`
+
 ### 0.10
 
 * Reworked workflow auto-testing

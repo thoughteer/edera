@@ -2,7 +2,7 @@
 
 ### Prerequisite
 
-**Edera** requires a Python distribution of version 2.7 or higher.
+**Edera** requires a Python distribution of version 2.7 or 3.4+.
 Unfortunately, version 3.7 is not supported yet.
 
 ### Installation

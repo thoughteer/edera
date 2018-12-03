@@ -22,6 +22,8 @@ class ProcessWorker(Worker):
         rely on module-level inter-thread locks (such as `logging` and `multiprocessing`).
         This may cause deadlocks in the forked process.
         For details, please, refer to http://bugs.python.org/issue6721.
+        Moreover, avoid using $multiprocessing.Manager for inter-process communication.
+        Stick to $multiprocessing.Queue and $multiprocessing.Lock primitives instead.
     """
 
     def __init__(self, name, action):

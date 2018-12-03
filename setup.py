@@ -3,13 +3,19 @@ import setuptools
 
 configuration = {
     "name": "edera",
-    "version": "0.10",
+    "version": "0.10.1",
     "description": "A distributed workflow management framework",
     "classifiers": [
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
-        "Topic :: System :: Distributed Computing"
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Topic :: System :: Distributed Computing",
     ],
     "keywords": "workflow task schedule distributed dependency management",
     "url": "https://github.com/thoughteer/edera",

@@ -122,6 +122,8 @@ class MonitorWatcher(object):
                 self.monitor.delete("payload/" + alias, till=checkpoint.payload_versions[alias])
                 commited.remove(alias)
             for agent in agents:
+                if agent.name not in checkpoint.cursors:
+                    continue
                 yield
                 agent.drop(till=checkpoint.cursors[agent.name])
 

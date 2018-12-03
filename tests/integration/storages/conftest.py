@@ -19,7 +19,7 @@ def sqlite_database(tmpdir):
 
 
 @pytest.fixture
-def sqlite_storage(sqlite_database):
+def sqlite_storage(debugger, sqlite_database):
     return SQLiteStorage(sqlite_database)
 
 
@@ -33,7 +33,7 @@ def mongo_database(mongo):
 
 
 @pytest.fixture
-def mongo_storage(mongo, mongo_database):
+def mongo_storage(debugger, mongo, mongo_database):
     return MongoStorage(mongo, mongo_database, "storage")
 
 
