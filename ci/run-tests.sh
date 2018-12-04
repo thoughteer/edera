@@ -27,6 +27,7 @@ then
     git checkout "$BASE"
     tox "tests/$GROUP"
     git checkout -qf "$TRAVIS_COMMIT"
+    export EDERA_PERFORMANCE_CONTROL_FLAGS='--benchmark-compare --benchmark-compare-fail=median:50%'
 fi
 
 tox "tests/$GROUP"
