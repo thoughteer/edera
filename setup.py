@@ -25,11 +25,11 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     install_requires=[
-        "flask >= 0.10.1, < 1.0",
+        "flask >= 1.0.2, < 2.0",
         "iso8601 >= 0.1.10, < 1.0",
         "kazoo >= 2.5.0, < 3.0",
         "pymongo >= 3.4, < 4.0",
         "six >= 1.10, < 2.0",
-        "sympy >= 0.7.4, < 1.0",
+        "sympy >= 1.3, < 2.0",
     ],
     zip_safe=False)
