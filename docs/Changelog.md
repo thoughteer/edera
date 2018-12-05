@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.10.2
+
+* Updated dependencies to the latest major versions
+
 ### 0.10.1
 
 * Made `Daemon` handle SIGTERM correctly
