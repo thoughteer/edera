@@ -193,9 +193,11 @@ class Daemon(object):
     def __execute(self, box, completion_flag):
         if completion_flag.raised:
             return
-        workflow = box.get()
-        if workflow is None:
-            return
+        while True:
+            workflow = box.get()
+            if workflow is not None:
+                break
+            yield edera.helpers.sleep.defer(datetime.timedelta(seconds=1))
         yield deferrable(self.executor.execute).defer(workflow)
         completion_flag.up()
 
