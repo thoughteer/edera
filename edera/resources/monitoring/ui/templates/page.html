@@ -10,7 +10,7 @@
     <body>
         <a href='{{ url_for("index") }}'><div class='header'>
             {% if snapshot -%}
-                <div class='timestamp' title='Last snapshot update time'>{{ snapshot.timestamp|formattime }}</div>
+                <div class='timestamp' title='Last snapshot update time'>{{ snapshot.timestamp|formatdatetime }}</div>
             {%- endif %}
             <div class='caption'>{{ caption|safe }}</div>
         </div></a>

@@ -53,10 +53,40 @@ class MonitoringUI(flask.Flask):
 
     def __configure(self):
 
-        @self.template_filter("formattime")
-        def format_time(timestamp):
+        @self.template_filter("formatdatetime")
+        def format_datetime(dt):
             offset = datetime.datetime.now() - datetime.datetime.utcnow()
-            return (timestamp + offset).strftime("%Y-%m-%d %H:%M:%S")
+            return (dt + offset).strftime("%Y-%m-%d %H:%M:%S")
+
+        @self.template_filter("formattimedelta")
+        def format_timedelta(td):
+
+            def decompose(seconds):
+                if seconds >= 86400:
+                    days = int(seconds / 86400)
+                    if days == 1:
+                        yield "1 day"
+                    else:
+                        yield "%d days" % days
+                    seconds -= days * 86400
+                if seconds >= 3600:
+                    hours = int(seconds / 3600)
+                    if hours == 1:
+                        yield "1 hour"
+                    else:
+                        yield "%d hours" % hours
+                    seconds -= hours * 3600
+                if seconds >= 60:
+                    minutes = int(seconds / 60)
+                    if minutes == 1:
+                        yield "1 minute"
+                    else:
+                        yield "%d minutes" % minutes
+                    seconds -= minutes * 60
+                if seconds != 0:
+                    yield "%.3f seconds" % seconds
+
+            return " ".join(decompose(td.total_seconds()))
 
         @self.template_filter("hashstring")
         def hash_string(string):
