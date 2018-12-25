@@ -11,15 +11,11 @@ class FactoryMeta(type):
         Returns:
             Type - the same class as $cls, but with the cargo
         """
-        if not hasattr(cls, "cargo"):
-            body = dict(cls.__dict__)
-            body["cargo"] = cargo
-            return type.__new__(cls.__class__, cls.__name__, cls.__bases__, body)
-        body = dict(cls.cargo.__dict__)
-        body.update(cls.__dict__)
+        body = dict(cls.__dict__)
         body["cargo"] = cargo
-        result = cls.cargo.__class__.__new__(cls.cargo.__class__, cls.__name__, (cls.cargo,), body)
-        return result
+        if not hasattr(cls, "cargo"):
+            return type.__new__(cls.__class__, cls.__name__, cls.__bases__, body)
+        return cls.cargo.__class__.__new__(cls.cargo.__class__, cls.__name__, (cls.cargo,), body)
 
 
 @six.add_metaclass(FactoryMeta)

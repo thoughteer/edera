@@ -10,7 +10,7 @@ from edera.helpers import Lazy
 @pytest.fixture(scope="session")
 def zookeeper_service():
     client = kazoo.client.KazooClient(hosts=os.environ["EDERA_ZOOKEEPER_HOSTS"])
-    if not client.start_async().wait(timeout=3):
+    if not client.start_async().wait(timeout=3.0):
         pytest.skip("ZooKeeper is unavailable")
     client.stop()
     client.close()

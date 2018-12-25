@@ -44,6 +44,7 @@ def test_sasha_handles_signals_correctly():
     ready_flag = multiprocessing.Event()
     receive_flag = multiprocessing.Event()
     process = multiprocessing.Process(target=target, args=(ready_flag, receive_flag))
+    process.daemon = True
     process.start()
     ready_flag.wait(1.0)
     os.kill(process.pid, signal.SIGINT)

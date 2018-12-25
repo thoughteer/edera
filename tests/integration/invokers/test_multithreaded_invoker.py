@@ -65,7 +65,7 @@ def test_invoker_interrupts_slaves_after_being_interrupted():
     @routine
     def wait():
         while True:
-            time.sleep(1)
+            time.sleep(1.0)
             yield
 
     def interrupt():
@@ -78,15 +78,15 @@ def test_invoker_interrupts_slaves_after_being_interrupted():
     start_time = time.time()
     with pytest.raises(RuntimeError):
         MultiThreadedInvoker(
-            actions, interruption_timeout=datetime.timedelta(seconds=5)).invoke[interrupt]()
-    assert time.time() - start_time < 3
+            actions, interruption_timeout=datetime.timedelta(seconds=5.0)).invoke[interrupt]()
+    assert time.time() - start_time < 3.0
 
 
 def test_invoker_kills_hanging_slaves():
 
     def hang():
         while True:
-            time.sleep(1)
+            time.sleep(1.0)
 
     def interrupt():
         raise RuntimeError
@@ -97,4 +97,4 @@ def test_invoker_kills_hanging_slaves():
     }
     with pytest.raises(RuntimeError):
         MultiThreadedInvoker(
-            actions, interruption_timeout=datetime.timedelta(seconds=5)).invoke[interrupt]()
+            actions, interruption_timeout=datetime.timedelta(seconds=5.0)).invoke[interrupt]()

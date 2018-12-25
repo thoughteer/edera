@@ -23,7 +23,7 @@ def test_invoker_runs_action_with_given_delay():
     timestamps = []
     counter = [0]
     limit = 3
-    delay = datetime.timedelta(seconds=0.3)
+    delay = datetime.timedelta(seconds=1.0)
     with pytest.raises(RuntimeError):
         PersistentInvoker(append_current_timestamp, delay=delay).invoke[audit]()
     assert len(timestamps) == limit
@@ -47,13 +47,13 @@ def test_invoker_runs_action_forever():
     invoker_thread = threading.Thread(target=invoker.invoke[audit])
     invoker_thread.daemon = True
     invoker_thread.start()
-    time.sleep(0.2)
+    time.sleep(0.3)
     assert invoker_thread.is_alive()
     assert counter[0] >= 1
-    time.sleep(0.2)
+    time.sleep(0.3)
     assert invoker_thread.is_alive()
     assert counter[0] >= 3
     interrupted = True
-    time.sleep(0.2)
+    time.sleep(0.3)
     assert not invoker_thread.is_alive()
     invoker_thread.join()
