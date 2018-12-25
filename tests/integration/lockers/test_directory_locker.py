@@ -20,7 +20,7 @@ def test_sigkill_releases_locks(directory_locker):
     target_process = multiprocessing.Process(target=lock_and_wait, args=(ready_flag,))
     target_process.daemon = True
     target_process.start()
-    ready_flag.wait(2.0)
+    ready_flag.wait(3.0)
     assert ready_flag.is_set()
     with pytest.raises(LockAcquisitionError):
         with directory_locker.lock("key"):

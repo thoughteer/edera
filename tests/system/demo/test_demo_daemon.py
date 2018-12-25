@@ -32,7 +32,6 @@ def test_demo_daemon_can_print_help():
     process = subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
     assert process.returncode == 0
-    assert not stderr
     assert "usage" in stdout.decode("ASCII")
 
 
@@ -47,12 +46,12 @@ def test_demo_daemon_works_fine_in_testing_mode(tmpdir):
     command = ["python", "-m", "edera.demo.daemon", "-d", "-t", str(tmpdir), "-s", "0"]
     process = subprocess.Popen(command, stderr=subprocess.PIPE)
     failure = start_analysis(process.stderr)
-    failure.wait(timeout=30)
+    failure.wait(timeout=90.0)
     try:
         assert not failure.is_set()
     finally:
         process.send_signal(signal.SIGINT)
-    time.sleep(30)
+    time.sleep(30.0)
     assert process.poll() == 0
     process.communicate()
     distribution = {len(list(child.visit())) for child in tmpdir.listdir() if child.check(dir=True)}
@@ -63,12 +62,12 @@ def test_demo_daemon_works_fine_in_production_mode(debugger, tmpdir):
     command = ["python", "-m", "edera.demo.daemon", "-d", str(tmpdir), "-s", "0"]
     process = subprocess.Popen(command, stderr=subprocess.PIPE)
     failure = start_analysis(process.stderr)
-    failure.wait(timeout=30)
+    failure.wait(timeout=90.0)
     try:
         assert not failure.is_set()
     finally:
         process.send_signal(signal.SIGTERM)
-    time.sleep(30)
+    time.sleep(30.0)
     assert process.poll() == 0
     process.communicate()
     assert tmpdir.join("input").check()

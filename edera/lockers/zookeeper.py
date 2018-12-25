@@ -101,6 +101,7 @@ class ZooKeeperLocker(Locker):
 
     def __notify_about_session_loss(self):
         logging.getLogger(__name__).debug("Session lost for ZK client %r", self.zookeeper)
-        for callback in self.__callbacks.get(self.zookeeper, []):
-            logging.getLogger(__name__).debug("Invoking the callback: %r", callback)
-            callback()
+        with self.__mutex:
+            for callback in self.__callbacks.get(self.zookeeper, []):
+                logging.getLogger(__name__).debug("Invoking the callback: %r", callback)
+                callback()

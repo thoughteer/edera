@@ -3,11 +3,13 @@ import setuptools
 
 setuptools.setup(
     name="edera",
-    version="0.10.2",
+    version="0.10.3",
     description="A distributed workflow management framework",
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",

@@ -9,7 +9,7 @@ from edera.workers import ThreadWorker
 
 @pytest.fixture(params=[ProcessWorker, ThreadWorker])
 def worker(request):
-    return request.param("worker", lambda: time.sleep(1))
+    return request.param("worker", lambda: time.sleep(1.0))
 
 
 @pytest.fixture(params=[ProcessWorker, ThreadWorker])
@@ -44,6 +44,6 @@ def hanging_worker(request):
 
     def hang():
         while True:
-            time.sleep(1)
+            time.sleep(1.0)
 
     return request.param("worker", hang)

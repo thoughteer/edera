@@ -1,9 +1,7 @@
 import collections
 import contextlib
 import os
-import random
 import sqlite3
-import time
 import threading
 
 from edera.exceptions import StorageOperationError
@@ -41,7 +39,7 @@ class SQLiteStorage(Storage):
         query = "DELETE FROM %s" % self.table
         with self.__connect() as cursor:
             cursor.execute(query)
-            cursor.connection.isolation_level = None  # this is a workaround for Python 3.6
+            cursor.connection.isolation_level = None  # prevent auto-commit
             cursor.execute("VACUUM")
             cursor.connection.isolation_level = ""
 
@@ -53,7 +51,7 @@ class SQLiteStorage(Storage):
             arguments += (till,)
         with self.__connect() as cursor:
             cursor.execute(query, arguments)
-            cursor.connection.isolation_level = None  # this is a workaround for Python 3.6
+            cursor.connection.isolation_level = None  # prevent auto-commit
             cursor.execute("VACUUM")
             cursor.connection.isolation_level = ""
 
@@ -84,35 +82,38 @@ class SQLiteStorage(Storage):
     @contextlib.contextmanager
     def __connect(self):
         pid = os.getpid()
-        if not hasattr(self.__local[pid], "connection"):
-            with self.__lock:  # seems like setting up WAL from multiple threads is not a good idea
+        with self.__lock:
+            if not hasattr(self.__local[pid], "connection"):
                 try:
-                    connection = sqlite3.connect(self.database, detect_types=True)
-                    self.__initialize(connection)
+                    connection = self.__create_connection()
                 except sqlite3.Error as error:
                     raise StorageOperationError(
                         "failed to connect to %r: %s" % (self.database, error))
                 self.__local[pid].connection = connection
         connection = self.__local[pid].connection
         try:
-            yield connection.cursor()
+            with self.__use(connection) as cursor:
+                yield cursor
         except sqlite3.Error as error:
             raise StorageOperationError("failed to execute a query: %s" % error)
-        try:
-            connection.commit()
-        except sqlite3.Error as error:
-            raise StorageOperationError("failed to commit: %s" % error)
 
-    def __initialize(self, connection):
-        time.sleep(random.random())  # this is a workaround for Mac OS X (gets deadlocked)
-        connection.execute("PRAGMA journal_mode = WAL")
-        connection.execute("PRAGMA synchronous = NORMAL")
-        connection.commit()  # commit pragma statements before heavy operations
-        connection.execute(
-            "CREATE TABLE IF NOT EXISTS %s (key TEXT, version INTEGER PRIMARY KEY, value TEXT)"
-            % self.table)
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS %s ON %s (key, version)"
-            % (self.table + "__index", self.table))
+    def __create_connection(self):
+        result = sqlite3.connect(self.database, detect_types=True)
+        with self.__use(result) as cursor:
+            cursor.execute(
+                "CREATE TABLE IF NOT EXISTS %s (key TEXT, version INTEGER PRIMARY KEY, value TEXT)"
+                % self.table)
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS %s ON %s (key, version)"
+                % (self.table + "__index", self.table))
+        result.text_factory = lambda data: data.decode("ASCII")
+        return result
+
+    @contextlib.contextmanager
+    def __use(self, connection):
+        cursor = connection.cursor()
+        try:
+            yield cursor
+        finally:
+            cursor.close()
         connection.commit()
-        connection.text_factory = str

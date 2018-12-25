@@ -53,10 +53,40 @@ class MonitoringUI(flask.Flask):
 
     def __configure(self):
 
-        @self.template_filter("formattime")
-        def format_time(timestamp):
+        @self.template_filter("formatdatetime")
+        def format_datetime(dt):
             offset = datetime.datetime.now() - datetime.datetime.utcnow()
-            return (timestamp + offset).strftime("%Y-%m-%d %H:%M:%S")
+            return (dt + offset).strftime("%Y-%m-%d %H:%M:%S")
+
+        @self.template_filter("formattimedelta")
+        def format_timedelta(td):
+
+            def decompose(seconds):
+                if seconds >= 86400:
+                    days = int(seconds / 86400)
+                    if days == 1:
+                        yield "1 day"
+                    else:
+                        yield "%d days" % days
+                    seconds -= days * 86400
+                if seconds >= 3600:
+                    hours = int(seconds / 3600)
+                    if hours == 1:
+                        yield "1 hour"
+                    else:
+                        yield "%d hours" % hours
+                    seconds -= hours * 3600
+                if seconds >= 60:
+                    minutes = int(seconds / 60)
+                    if minutes == 1:
+                        yield "1 minute"
+                    else:
+                        yield "%d minutes" % minutes
+                    seconds -= minutes * 60
+                if seconds != 0:
+                    yield "%.3f seconds" % seconds
+
+            return " ".join(decompose(td.total_seconds()))
 
         @self.template_filter("hashstring")
         def hash_string(string):
@@ -74,7 +104,7 @@ class MonitoringUI(flask.Flask):
         def index():
             snapshot = self.__watcher.load_snapshot()
             if snapshot is None:
-                flask.abort(404)
+                return flask.render_template("void.html", caption=self.caption)
             labeling = self.__label_tasks(snapshot)
             ranking = self.__rank_tasks(snapshot)
             return flask.render_template(
@@ -99,10 +129,6 @@ class MonitoringUI(flask.Flask):
                 labeling=labeling,
                 alias=alias,
                 payload=payload)
-
-        @self.errorhandler(404)
-        def not_found(e):
-            return (flask.render_template("404.html", caption=self.caption), 404)
 
         self.jinja_loader = jinja2.loaders.PackageLoader(
             "edera", package_path="resources/monitoring/ui/templates")
