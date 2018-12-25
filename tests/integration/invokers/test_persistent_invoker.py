@@ -27,7 +27,7 @@ def test_invoker_runs_action_with_given_delay():
     with pytest.raises(RuntimeError):
         PersistentInvoker(append_current_timestamp, delay=delay).invoke[audit]()
     assert len(timestamps) == limit
-    assert 2 * abs((timestamps[2] - timestamps[0]) - (limit - 1) * delay) < delay
+    assert abs((timestamps[2] - timestamps[0]) - (limit - 1) * delay) < delay
 
 
 def test_invoker_runs_action_forever():
