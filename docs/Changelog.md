@@ -1,5 +1,13 @@
 # Changelog
 
+### 0.10.3
+
+* Reduced the lag of the first execution in `Daemon` (#4)
+* Updated the monitoring UI (#20)
+* Fixed the concurrent access problem in `SQLiteStorage` (#14)
+* Enabled PyPy 2.7/3.5 support
+* Fixed a premature completion bug in `Daemon`
+
 ### 0.10.2
 
 * Updated dependencies to the latest major versions
