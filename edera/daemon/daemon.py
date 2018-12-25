@@ -191,8 +191,6 @@ class Daemon(object):
 
     @routine
     def __execute(self, box, completion_flag):
-        if completion_flag.raised:
-            return
         while True:
             workflow = box.get()
             if workflow is not None:
