@@ -47,7 +47,7 @@ def test_demo_daemon_works_fine_in_testing_mode(tmpdir):
     command = ["python", "-m", "edera.demo.daemon", "-d", "-t", str(tmpdir), "-s", "0"]
     process = subprocess.Popen(command, stderr=subprocess.PIPE)
     failure = start_analysis(process.stderr)
-    failure.wait(timeout=25.0)
+    failure.wait(timeout=45.0)
     try:
         assert not failure.is_set()
     finally:
@@ -63,7 +63,7 @@ def test_demo_daemon_works_fine_in_production_mode(debugger, tmpdir):
     command = ["python", "-m", "edera.demo.daemon", "-d", str(tmpdir), "-s", "0"]
     process = subprocess.Popen(command, stderr=subprocess.PIPE)
     failure = start_analysis(process.stderr)
-    failure.wait(timeout=25.0)
+    failure.wait(timeout=45.0)
     try:
         assert not failure.is_set()
     finally:

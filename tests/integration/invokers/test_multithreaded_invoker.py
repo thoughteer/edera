@@ -78,8 +78,8 @@ def test_invoker_interrupts_slaves_after_being_interrupted():
     start_time = time.time()
     with pytest.raises(RuntimeError):
         MultiThreadedInvoker(
-            actions, interruption_timeout=datetime.timedelta(seconds=5.0)).invoke[interrupt]()
-    assert time.time() - start_time < 3.0
+            actions, interruption_timeout=datetime.timedelta(seconds=3.0)).invoke[interrupt]()
+    assert time.time() - start_time < 6.0
 
 
 def test_invoker_kills_hanging_slaves():

@@ -30,7 +30,7 @@ def test_shared_box_works_with_multiple_consumers():
     producer.daemon = True
     producer.start()
     for consumer in consumers:
-        consumer.join(3.0)
+        consumer.join(6.0)
         assert not consumer.is_alive()
-    producer.join(1.0)
+    producer.join(2.0)
     assert not producer.is_alive()
