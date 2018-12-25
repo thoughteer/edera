@@ -32,5 +32,5 @@ def test_shared_box_works_with_multiple_consumers():
     for consumer in consumers:
         consumer.join(12.0)
         assert not consumer.is_alive()
-    producer.join(2.0)
+    producer.join(6.0)
     assert not producer.is_alive()
