@@ -28,15 +28,19 @@ li::before {
     width: 1em;
 }
 
-h1 {
-    font-size: 2em;
-    text-align: center;
-}
-
 .header {
     background-color: #444444;
     color: #FFFFFF;
     padding: 0.75em 1.5em;
+}
+
+.pinned {
+    color: #444444;
+    font-size: 2em;
+    left: 50%;
+    position: fixed;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .block {

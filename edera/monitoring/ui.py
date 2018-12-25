@@ -104,7 +104,7 @@ class MonitoringUI(flask.Flask):
         def index():
             snapshot = self.__watcher.load_snapshot()
             if snapshot is None:
-                flask.abort(404)
+                return flask.render_template("void.html", caption=self.caption)
             labeling = self.__label_tasks(snapshot)
             ranking = self.__rank_tasks(snapshot)
             return flask.render_template(
@@ -129,10 +129,6 @@ class MonitoringUI(flask.Flask):
                 labeling=labeling,
                 alias=alias,
                 payload=payload)
-
-        @self.errorhandler(404)
-        def not_found(e):
-            return (flask.render_template("404.html", caption=self.caption), 404)
 
         self.jinja_loader = jinja2.loaders.PackageLoader(
             "edera", package_path="resources/monitoring/ui/templates")
