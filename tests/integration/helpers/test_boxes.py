@@ -10,11 +10,11 @@ def test_shared_box_works_with_multiple_consumers():
         for i in range(1, 6):
             box.put(i)
             while box.get() is not None:
-                time.sleep(0.1)
+                time.sleep(1.0)
 
     def consume(index):
         while box.get() != index:
-            time.sleep(0.1)
+            time.sleep(0.2)
         box.put(None)
 
     box = SharedBox()
@@ -30,7 +30,7 @@ def test_shared_box_works_with_multiple_consumers():
     producer.daemon = True
     producer.start()
     for consumer in consumers:
-        consumer.join(6.0)
+        consumer.join(12.0)
         assert not consumer.is_alive()
     producer.join(2.0)
     assert not producer.is_alive()
