@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 
+from edera.storages import EmbeddedStorage
 from edera.storages import InMemoryStorage
 from edera.storages import MongoStorage
 from edera.storages import SQLiteStorage
@@ -37,12 +38,17 @@ def mongo_storage(debugger, mongo, mongo_database):
     return MongoStorage(mongo, mongo_database, "storage")
 
 
-@pytest.fixture(params=["inmemory_storage", "sqlite_storage", "mongo_storage"])
+@pytest.fixture
+def embedded_storage(inmemory_storage):
+    return EmbeddedStorage(inmemory_storage, "keyspace")
+
+
+@pytest.fixture(params=["inmemory_storage", "sqlite_storage", "mongo_storage", "embedded_storage"])
 def storage(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture(params=["inmemory_storage", "sqlite_storage", "mongo_storage"])
+@pytest.fixture(params=["inmemory_storage", "sqlite_storage", "mongo_storage", "embedded_storage"])
 def multithreaded_storage(request):
     return request.getfixturevalue(request.param)
 

@@ -35,14 +35,6 @@ class SQLiteStorage(Storage):
         self.__local = collections.defaultdict(threading.local)
         self.__lock = threading.Lock()
 
-    def clear(self):
-        query = "DELETE FROM %s" % self.table
-        with self.__connect() as cursor:
-            cursor.execute(query)
-            cursor.connection.isolation_level = None  # prevent auto-commit
-            cursor.execute("VACUUM")
-            cursor.connection.isolation_level = ""
-
     def delete(self, key, till=None):
         query = "DELETE FROM %s WHERE key = ?" % self.table
         arguments = (key,)
@@ -54,11 +46,6 @@ class SQLiteStorage(Storage):
             cursor.connection.isolation_level = None  # prevent auto-commit
             cursor.execute("VACUUM")
             cursor.connection.isolation_level = ""
-
-    def gather(self):
-        query = "SELECT key, version, value FROM %s" % self.table
-        with self.__connect() as cursor:
-            return cursor.execute(query).fetchall()
 
     def get(self, key, since=None, limit=None):
         query = "SELECT version, value FROM %s WHERE key = ?" % self.table
