@@ -12,7 +12,7 @@ import edera.helpers
 from edera.monitoring.watcher import MonitorWatcher
 
 
-URL_PATTERN = "(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)"
+URL_PATTERN = "https?://[^\\s]*"
 
 
 class MonitoringUI(flask.Flask):
@@ -98,7 +98,7 @@ class MonitoringUI(flask.Flask):
 
         @self.template_filter("highlight")
         def highlight(message):
-            return jinja2.Markup(re.sub(URL_PATTERN, "<a href='\g<1>'>\g<1></a>", message))
+            return jinja2.Markup(re.sub(URL_PATTERN, "<a href='\g<0>'>\g<0></a>", message))
 
         @self.route("/")
         def index():
