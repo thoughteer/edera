@@ -1,4 +1,4 @@
-import binascii
+import base64
 
 import six.moves.cPickle as pickle
 
@@ -21,7 +21,7 @@ class Serializable(object):
         Returns:
             $cls - the deserialized object
         """
-        return pickle.loads(binascii.unhexlify(serialization))
+        return pickle.loads(base64.b64decode(serialization.encode("ASCII")))
 
     def serialize(self):
         """
@@ -30,4 +30,4 @@ class Serializable(object):
         Returns:
             String
         """
-        return binascii.hexlify(pickle.dumps(self, protocol=2)).decode("ASCII")
+        return base64.b64encode(pickle.dumps(self, protocol=2)).decode("ASCII")
