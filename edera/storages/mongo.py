@@ -36,14 +36,17 @@ class MongoStorage(Storage):
         self.mongo = mongo
         self.__database = database
         self.__collection = collection
+        self.__indexed = False
 
     @property
     def collection(self):
         result = self.database[self.__collection]
-        try:
-            result.create_index([("key", pymongo.ASCENDING), ("version", pymongo.ASCENDING)])
-        except pymongo.errors.PyMongoError as error:
-            raise StorageOperationError("failed to create index: %s" % error)
+        if not self.__indexed:
+            try:
+                result.create_index([("key", pymongo.ASCENDING), ("version", pymongo.ASCENDING)])
+            except pymongo.errors.PyMongoError as error:
+                raise StorageOperationError("failed to create index: %s" % error)
+            self.__indexed = True
         return result
 
     @property
