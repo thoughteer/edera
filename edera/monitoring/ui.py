@@ -98,8 +98,8 @@ class MonitoringUI(flask.Flask):
 
         @self.template_filter("highlight")
         def highlight(message):
-            link = jinja2.Markup("<a href='\g<0>'>\g<0></a>")
-            return jinja2.Markup(re.sub(URL_PATTERN, link, message))
+            link = "<a href='\g<0>'>\g<0></a>"
+            return jinja2.Markup(re.sub(URL_PATTERN, link, str(jinja2.escape(message))))
 
         @self.route("/")
         def index():
