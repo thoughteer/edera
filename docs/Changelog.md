@@ -1,5 +1,13 @@
 # Changelog
 
+### 0.10.4
+
+* Implemented `EmbeddedStorage` and simplified the `Storage` interface
+* Fixed a couple of minor issues with the monitoring UI
+* Slightly improved performance of `MongoStorage`
+* Reduced the size of monitoring data
+* Introduced static daemon modules and static timestamps for auto-testing
+
 ### 0.10.3
 
 * Reduced the lag of the first execution in `Daemon` (#4)
