@@ -12,7 +12,7 @@ from edera.storages import SQLiteStorage
 def test_storage_reports_about_connection_failures(tmpdir):
     os.chmod(str(tmpdir), stat.S_IREAD)
     with pytest.raises(StorageOperationError):
-        SQLiteStorage(os.path.join(str(tmpdir), "storage.db")).gather()
+        SQLiteStorage(os.path.join(str(tmpdir), "storage.db")).get("key")
 
 
 def test_storage_reports_about_execution_failures(sqlite_storage):

@@ -9,6 +9,7 @@ from edera.condition import Condition
 from edera.daemon import Daemon
 from edera.daemon import DaemonAutoTester
 from edera.daemon import DaemonModule
+from edera.daemon import StaticDaemonModule
 from edera.daemon import DaemonSchedule
 from edera.demo.daemon.beans import arguments
 from edera.demo.daemon.beans import cache
@@ -331,8 +332,6 @@ class DemoMain(DaemonModule):
         }
 
     def seed(self, now):
-        if arguments.test:
-            now, _ = DateTime.qualify("1991-07-26T09:00:00Z")
         return ReHashFile(input_file="input", output_directory="output", timestamp=now)
 
 
@@ -344,14 +343,10 @@ class Welcome(Parameterizable, Task):
         logging.getLogger("edera.monitoring.sink").info("Welcome!")
 
 
-class DemoPrelude(DaemonModule):
+class DemoPrelude(StaticDaemonModule):
 
-    @property
-    def scheduling(self):
-        return {None: DaemonSchedule(execution_delay="PT1S")}
-
-    def seed(self, now):
-        return Welcome()
+    root = Welcome()
+    scheduling = {None: DaemonSchedule(execution_delay="PT1S")}
 
 
 class WatchMonitor(Task):

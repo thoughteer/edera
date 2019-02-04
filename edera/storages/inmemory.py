@@ -1,8 +1,6 @@
 import collections
 import threading
 
-import six
-
 from edera.storage import Storage
 
 
@@ -18,25 +16,12 @@ class InMemoryStorage(Storage):
         self.__offsets = collections.defaultdict(int)
         self.__lock = threading.Lock()
 
-    def clear(self):
-        with self.__lock:
-            self.__records.clear()
-            self.__offsets.clear()
-
     def delete(self, key, till=None):
         with self.__lock:
             values = self.__records[key]
             count = len(values) if till is None else max(till - self.__offsets[key], 0)
             del values[:count]
             self.__offsets[key] += count
-
-    def gather(self):
-        with self.__lock:
-            return [
-                (key, index + self.__offsets[key], value)
-                for key, values in six.iteritems(self.__records)
-                for index, value in enumerate(values)
-            ]
 
     def get(self, key, since=None, limit=None):
         with self.__lock:

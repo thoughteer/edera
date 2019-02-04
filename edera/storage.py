@@ -10,19 +10,10 @@ class Storage(object):
 
     A storage is something that stores key-value pairs versioned chronologically.
     Both keys and values are strings, versions are integer numbers.
-    Versions are not globally unique.
+    Versions are not globally unique (key-specific).
 
     Storages help to organize any stateful activities, such as caching and monitoring.
     """
-
-    @abc.abstractmethod
-    def clear(self):
-        """
-        Clear the storage.
-
-        Raises:
-            StorageOperationError if something went wrong
-        """
 
     @abc.abstractmethod
     def delete(self, key, till=None):
@@ -33,18 +24,6 @@ class Storage(object):
             key (String) - a key to delete data for
             till (Optional[Integer]) - a maximum version for the records to delete (excluding)
                 Default is $None - all versions will be deleted.
-
-        Raises:
-            StorageOperationError if something went wrong
-        """
-
-    @abc.abstractmethod
-    def gather(self):
-        """
-        Fetch all data available in the storage.
-
-        Returns:
-            List[Tuple[String, Integer, String]] - (key, version, value) tuples
 
         Raises:
             StorageOperationError if something went wrong

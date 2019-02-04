@@ -32,3 +32,21 @@ class DaemonModule(object):
         Returns:
             Task
         """
+
+
+class StaticDaemonModule(DaemonModule):
+    """
+    A daemon module with a static seeder.
+
+    Uses the same root task at all times.
+
+    Attributes:
+        root (Task) - the root task
+    """
+
+    @abc.abstractproperty
+    def root(self):
+        pass
+
+    def seed(self, now):
+        return self.root

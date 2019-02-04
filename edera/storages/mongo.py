@@ -36,20 +36,17 @@ class MongoStorage(Storage):
         self.mongo = mongo
         self.__database = database
         self.__collection = collection
-
-    def clear(self):
-        try:
-            self.collection.delete_many({})
-        except pymongo.errors.PyMongoError as error:
-            raise StorageOperationError("failed to write to the MongoDB collection: %s" % error)
+        self.__indexed = False
 
     @property
     def collection(self):
         result = self.database[self.__collection]
-        try:
-            result.create_index([("key", pymongo.ASCENDING), ("version", pymongo.ASCENDING)])
-        except pymongo.errors.PyMongoError as error:
-            raise StorageOperationError("failed to create index: %s" % error)
+        if not self.__indexed:
+            try:
+                result.create_index([("key", pymongo.ASCENDING), ("version", pymongo.ASCENDING)])
+            except pymongo.errors.PyMongoError as error:
+                raise StorageOperationError("failed to create index: %s" % error)
+            self.__indexed = True
         return result
 
     @property
@@ -64,13 +61,6 @@ class MongoStorage(Storage):
             self.collection.delete_many(selector)
         except pymongo.errors.PyMongoError as error:
             raise StorageOperationError("failed to write to the MongoDB collection: %s" % error)
-
-    def gather(self):
-        try:
-            documents = list(self.collection.find({}))
-        except pymongo.errors.PyMongoError as error:
-            raise StorageOperationError("failed to read from the MongoDB collection: %s" % error)
-        return [self.__decode_document(document) for document in documents]
 
     def get(self, key, since=None, limit=None):
         if limit == 0:  # pymongo is weird and treats 0 as "no limit"
