@@ -68,7 +68,7 @@
                             <div class='log'>
                             {%- for timestamp, message in log|sort -%}
                                 <div class='log-message'>
-                                    {{- timestamp|formatdatetime }} &mdash; {{ message|e|highlight -}}
+                                    {{- timestamp|formatdatetime }} &mdash; {{ message|highlight -}}
                                 </div>
                             {%- endfor -%}
                             </div>

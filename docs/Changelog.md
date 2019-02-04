@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.10.5
+
+* Re-fixed URL highlighting in the monitoring UI
+
 ### 0.10.4
 
 * Implemented `EmbeddedStorage` and simplified the `Storage` interface
