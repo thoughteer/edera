@@ -67,7 +67,7 @@ class Daemon(object):
         monitor (Optional[Storage]) - the storage used for monitoring purposes
         postprocessors (Iterable[WorkflowProcessor]) - the sequence of processors applied after
                 filtering by tag
-        prelude (Optional[DaemonModule])
+        prelude (Optional[StaticDaemonModule])
         preprocessors (Iterable[WorkflowProcessor]) - the sequence of processors applied before
                 filtering by tag
         support (Optional[DaemonModule])
@@ -174,7 +174,10 @@ class Daemon(object):
 
     @routine
     def __build(self, seeder, testable, tag, box):
-        root = seeder(edera.helpers.now())
+        if testable and self.autotester is not None:
+            root = self.autotester.seed(seeder)
+        else:
+            root = seeder(edera.helpers.now())
         workflow = self.builder.build(root)
         with self.manager:
             if testable and self.autotester is not None:
