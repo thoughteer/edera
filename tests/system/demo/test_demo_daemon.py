@@ -42,7 +42,7 @@ def test_demo_daemon_fails_if_launched_with_no_arguments():
     assert process.returncode > 0
 
 
-def test_demo_daemon_works_fine_in_testing_mode(tmpdir):
+def test_demo_daemon_works_fine_in_testing_mode(debugger, tmpdir):
     command = ["python", "-m", "edera.demo.daemon", "-d", "-t", str(tmpdir), "-s", "0"]
     process = subprocess.Popen(command, stderr=subprocess.PIPE)
     failure = start_analysis(process.stderr)
