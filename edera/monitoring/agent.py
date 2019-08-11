@@ -103,6 +103,7 @@ class MonitoringAgent(Nameable):
         Returns:
             Graph - an altered task graph
         """
+        self.register()
         dependencies = {
             task.name: {parent.name for parent in workflow[task].parents}
             for task in workflow
@@ -112,10 +113,7 @@ class MonitoringAgent(Nameable):
             task.name: workflow[task].annotation.get("announcement")
             for task in workflow
         }
-        workflow_update = WorkflowUpdate(dependencies, phonies, announcements)
-        if not self.register() or not self.push(workflow_update):
-            logging.getLogger(__name__).warning("This time monitoring will be disabled")
-            return workflow
+        self.push(WorkflowUpdate(dependencies, phonies, announcements))
         result = workflow.clone()
         for task in result:
             if task.execute is Phony:
@@ -155,13 +153,10 @@ class MonitoringAgent(Nameable):
         Args:
             update (MonitoringSnapshotUpdate) - an update to push
 
-        Returns:
-            Boolean - whether the operation succeeded
-
         Raises:
             AssertionError if the agent is read-only
         """
-        return self.__push(self.__key, update.serialize())
+        self.__push(self.__key, update.serialize())
 
     @property
     def readonly(self):
@@ -171,13 +166,10 @@ class MonitoringAgent(Nameable):
         """
         Register the agent in the monitor.
 
-        Returns:
-            Boolean - whether the operation succeeded
-
         Raises:
             AssertionError if the agent is read-only
         """
-        return self.__push("agent", self.name)
+        self.__push("agent", self.name)
 
     def __push(self, key, value):
         assert not self.readonly
@@ -185,8 +177,6 @@ class MonitoringAgent(Nameable):
             self.__consumer.push((key, value))
         except ConsumptionError:
             logging.getLogger(__name__).warning("Consumer rejected a monitoring record")
-            return False
-        return True
 
 
 class StatusReportingTaskWrapper(TaskWrapper):
