@@ -5,6 +5,7 @@ import traceback
 import edera.helpers
 
 from edera.condition import ConditionWrapper
+from edera.exceptions import ConsumptionError
 from edera.exceptions import ExcusableError
 from edera.exceptions import StorageOperationError
 from edera.helpers import CurrentException
@@ -26,31 +27,42 @@ class MonitoringAgent(Nameable):
     Agents are used to push updates into a storage during workflow execution.
     They are also used to retrieve updates from the storage.
 
+    Agents (unless they are read-only) use a consumer to push updates.
+    This allows features like buffering to be implemented naturally.
+
     Default agents:
       - track the topology of the task graph
       - publish task announcements
       - report statuses of the tasks
       - collect logs during task execution
 
+    Attributes:
+        readonly (Boolean) - True iff the agent does not have a consumer to push through
+
     See also:
         $MonitoringWorkflowExecutor
         $MonitorWatcher
     """
 
-    def __init__(self, name, monitor):
+    def __init__(self, name, monitor, consumer=None):
         """
         Args:
             name (String) - a unique name for the agent
             monitor (Storage) - a storage used to store all relevant information
+            consumer (Optional[Consumer]) - a consumer that accepts key-value pairs
+                We presume that this consumer puts records to the same $monitor.
         """
         self.__name = name
         self.__monitor = monitor
+        self.__consumer = consumer
         self.__key = "update/" + name
 
     @classmethod
     def discover(cls, monitor):
         """
         Get the set of all agents registered in the monitor.
+
+        All discovered agents are read-only.
 
         Args:
             monitor (Storage) - a storage to search for agents
@@ -90,11 +102,7 @@ class MonitoringAgent(Nameable):
 
         Returns:
             Graph - an altered task graph
-
-        Raises:
-            StorageOperationError if something went wrong with the storage
         """
-        self.__monitor.put("agent", self.name)
         dependencies = {
             task.name: {parent.name for parent in workflow[task].parents}
             for task in workflow
@@ -104,7 +112,10 @@ class MonitoringAgent(Nameable):
             task.name: workflow[task].annotation.get("announcement")
             for task in workflow
         }
-        self.push(WorkflowUpdate(dependencies, phonies, announcements))
+        workflow_update = WorkflowUpdate(dependencies, phonies, announcements)
+        if not self.register() or not self.push(workflow_update):
+            logging.getLogger(__name__).warning("This time monitoring will be disabled")
+            return workflow
         result = workflow.clone()
         for task in result:
             if task.execute is Phony:
@@ -144,10 +155,38 @@ class MonitoringAgent(Nameable):
         Args:
             update (MonitoringSnapshotUpdate) - an update to push
 
+        Returns:
+            Boolean - whether the operation succeeded
+
         Raises:
-            StorageOperationError if something went wrong with the storage
+            AssertionError if the agent is read-only
         """
-        self.__monitor.put(self.__key, update.serialize())
+        return self.__push(self.__key, update.serialize())
+
+    @property
+    def readonly(self):
+        return self.__consumer is None
+
+    def register(self):
+        """
+        Register the agent in the monitor.
+
+        Returns:
+            Boolean - whether the operation succeeded
+
+        Raises:
+            AssertionError if the agent is read-only
+        """
+        return self.__push("agent", self.name)
+
+    def __push(self, key, value):
+        assert not self.readonly
+        try:
+            self.__consumer.push((key, value))
+        except ConsumptionError:
+            logging.getLogger(__name__).warning("Consumer rejected a monitoring record")
+            return False
+        return True
 
 
 class StatusReportingTaskWrapper(TaskWrapper):
@@ -202,17 +241,11 @@ class StatusReportingTaskWrapper(TaskWrapper):
             return StatusReportingConditionWrapper(condition, self, self.__agent)
 
     def __report_status(self, status):
-        try:
-            self.__agent.push(TaskStatusUpdate(self.name, status, edera.helpers.now()))
-        except StorageOperationError as error:
-            logging.getLogger(__name__).warning("Failed to report the status: %s", error)
+        self.__agent.push(TaskStatusUpdate(self.name, status, edera.helpers.now()))
 
     def __save_traceback(self):
-        try:
-            message = traceback.format_exc()
-            self.__agent.push(TaskLogUpdate(self.name, message, edera.helpers.now()))
-        except StorageOperationError as error:
-            logging.getLogger(__name__).warning("Failed to save the traceback: %s", error)
+        message = traceback.format_exc()
+        self.__agent.push(TaskLogUpdate(self.name, message, edera.helpers.now()))
 
 
 class StatusReportingConditionWrapper(ConditionWrapper):
@@ -250,17 +283,11 @@ class StatusReportingConditionWrapper(ConditionWrapper):
         yield result
 
     def __report_status(self, status):
-        try:
-            self.__agent.push(TaskStatusUpdate(self.__task.name, status, edera.helpers.now()))
-        except StorageOperationError as error:
-            logging.getLogger(__name__).warning("Failed to report the status: %s", error)
+        self.__agent.push(TaskStatusUpdate(self.__task.name, status, edera.helpers.now()))
 
     def __save_traceback(self):
-        try:
-            message = traceback.format_exc()
-            self.__agent.push(TaskLogUpdate(self.__task.name, message, edera.helpers.now()))
-        except StorageOperationError as error:
-            logging.getLogger(__name__).warning("Failed to save the traceback: %s", error)
+        message = traceback.format_exc()
+        self.__agent.push(TaskLogUpdate(self.__task.name, message, edera.helpers.now()))
 
 
 class LogCapturingTaskWrapper(TaskWrapper):
@@ -283,11 +310,8 @@ class LogCapturingTaskWrapper(TaskWrapper):
         def emit(self, record):
             if threading.current_thread() != self.__thread:
                 return
-            try:
-                message = self.format(record)
-                self.__agent.push(TaskLogUpdate(self.__task, message, edera.helpers.now()))
-            except StorageOperationError as error:
-                logging.getLogger(__name__).warning("Failed to save the log message: %s", error)
+            message = self.format(record)
+            self.__agent.push(TaskLogUpdate(self.__task, message, edera.helpers.now()))
 
     def __init__(self, base, agent):
         """

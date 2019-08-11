@@ -244,3 +244,9 @@ class MonitorInconsistencyError(Error):
     That is a big no-no.
     Use a locker to prevent parallel execution.
     """
+
+
+class ConsumptionError(Error):
+    """
+    The consumer could not accept an element.
+    """

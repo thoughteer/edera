@@ -1,3 +1,4 @@
+dist: xenial
 sudo: false
 if: tag IS blank
 services:
@@ -6,8 +7,7 @@ language: python
 python:
   - "2.7"
   - "3.4"
-  - "3.5"
-  - "3.6"
+  - "3.7"
   - "pypy"
   - "pypy3.5"
 env:
@@ -28,7 +28,7 @@ jobs:
   include:
     - stage: release
       if: branch = master
-      python: 3.6
+      python: 3.7
       install: skip
       script: skip
       deploy:

@@ -1,3 +1,5 @@
+import logging
+
 from edera.condition import ConditionWrapper
 from edera.helpers import Phony
 from edera.routine import deferrable
@@ -62,12 +64,14 @@ class SegregatingTaskWrapper(TaskWrapper):
 
     @routine
     def execute(self):
-        assert self.__box.get() is None
+        assert self.__box.get() is None, "color box already contains `%s`" % self.__box.get()
         self.__box.put(self.__color)
+        logging.getLogger(__name__).debug("Switched to color `%s`", self.__color)
         try:
             yield deferrable(super(SegregatingTaskWrapper, self).execute).defer()
         finally:
             self.__box.put(None)
+            logging.getLogger(__name__).debug("Emptied the color box")
 
     @property
     def target(self):
@@ -97,10 +101,12 @@ class SegregatingConditionWrapper(ConditionWrapper):
 
     @routine
     def check(self):
-        assert self.__box.get() is None
+        assert self.__box.get() is None, "color box already contains `%s`" % self.__box.get()
         self.__box.put(self.__color)
+        logging.getLogger(__name__).debug("Switched to color `%s`", self.__color)
         try:
             result = yield deferrable(super(SegregatingConditionWrapper, self).check).defer()
             yield result
         finally:
             self.__box.put(None)
+            logging.getLogger(__name__).debug("Emptied the color box")

@@ -86,7 +86,10 @@ class Routine(object):
             generator = self.__core(*args, **kwargs)
             seed, exception = None, None
             while True:
-                feed = generator.send(seed) if exception is None else generator.throw(*exception)
+                try:
+                    feed = generator.send(seed) if exception is None else generator.throw(*exception)
+                except StopIteration:
+                    return
                 if isinstance(feed, DeferredRoutineCall):
                     feed.instance = feed.instance[auditor]
                 try:

@@ -10,6 +10,7 @@ import six
 
 import edera.helpers
 
+from edera.consumers import InterProcessConsumer
 from edera.flags import InterProcessFlag
 from edera.flags import InterThreadFlag
 from edera.helpers import Sasha
@@ -72,6 +73,10 @@ class Daemon(object):
                 filtering by tag
         support (Optional[DaemonModule])
 
+    Constants:
+        CONSUMER_CAPACITY (Integer) - the capacity of the consumer that serves monitoring agents
+        CONSUMER_BACKOFF (TimeDelta) - the backoff of the consumer that serves monitoring agents
+
     See also:
         $DaemonAutoTester
         $DaemonModule
@@ -81,6 +86,15 @@ class Daemon(object):
         Avoid having active background threads when starting the daemon.
         See $ProcessWorker's documentation for details.
     """
+
+    CONSUMER_CAPACITY = 1000
+    CONSUMER_BACKOFF = datetime.timedelta(seconds=1)
+
+    def __init__(self):
+        self.__consumer = InterProcessConsumer(
+            lambda kv: self.monitor.put(*kv),
+            self.CONSUMER_CAPACITY,
+            self.CONSUMER_BACKOFF)
 
     @property
     def autotester(self):
@@ -98,13 +112,12 @@ class Daemon(object):
     def executor(self):
         result = BasicWorkflowExecutor()
         if self.monitor is not None:
-            def agency():
-                host_name = socket.getfqdn()
-                process_name = multiprocessing.current_process().name
-                thread_name = threading.current_thread().name
-                agent_name = ":".join([host_name, process_name, thread_name])
-                return MonitoringAgent(agent_name, self.monitor)
-            result = MonitoringWorkflowExecutor(result, agency)
+            host_name = socket.getfqdn()
+            process_name = multiprocessing.current_process().name
+            thread_name = threading.current_thread().name
+            agent_name = ":".join([host_name, process_name, thread_name])
+            agent = MonitoringAgent(agent_name, self.monitor, self.__consumer)
+            result = MonitoringWorkflowExecutor(result, agent)
         result = ManagedWorkflowExecutor(result, self.manager)
         return result
 
@@ -206,6 +219,10 @@ class Daemon(object):
     def __run(self):
 
         @routine
+        def run_consumer():
+            yield self.__consumer.consume.defer()
+
+        @routine
         def run_support():
             if self.support is not None:
                 yield self.__run_module.defer("support", self.support)
@@ -219,6 +236,7 @@ class Daemon(object):
         timeout = 2 * self.interruption_timeout
         yield MultiProcessInvoker(
             {
+                "consumer": run_consumer,
                 "launcher#support": run_support,
                 "launcher#main": run_main,
             },

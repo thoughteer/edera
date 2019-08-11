@@ -92,8 +92,10 @@ class WorkflowTrimmer(WorkflowProcessor):
                 logging.getLogger(__name__).debug("Cutting at %r of volume %d", target, volume)
                 try:
                     completed = yield deferrable(target.check).defer()
-                except Exception as error:
-                    logging.getLogger(__name__).warning("Failed to check %r: %s", target, error)
+                except ExcusableError as error:
+                    logging.getLogger(__name__).info("Stopped checking %r: %s", target, error)
+                except Exception:
+                    logging.getLogger(__name__).exception("Failed to check %r:", target)
                 else:
                     if completed:
                         logging.getLogger(__name__).debug("Blacklisting ancestors")
