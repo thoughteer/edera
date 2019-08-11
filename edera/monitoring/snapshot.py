@@ -187,6 +187,8 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
                 snapshot.aliases[dependency]
                 for dependency in self.dependencies[task]
             }
+            if agent.name in state.runs:
+                del state.runs[agent.name]
         return []
 
 
@@ -212,11 +214,14 @@ class TaskStatusUpdate(MonitoringSnapshotUpdate):
         self.timestamp = timestamp
 
     def apply(self, snapshot, agent):
+        if self.task not in snapshot.aliases:
+            snapshot.add([self.task])
         state = snapshot.reports[snapshot.aliases[self.task]].state
         if self.status == "completed":
             state.completed = True
             if agent.name in state.runs:
-                if state.span is None or state.span[0] > state.runs[agent.name]:
+                assert state.runs[agent.name] <= self.timestamp
+                if state.span is None or state.span[1] > self.timestamp:
                     state.span = (state.runs[agent.name], self.timestamp)
         elif self.status == "failed":
             state.failures[agent.name] = self.timestamp
@@ -254,6 +259,8 @@ class TaskLogUpdate(MonitoringSnapshotUpdate):
         self.timestamp = timestamp
 
     def apply(self, snapshot, agent):
+        if self.task not in snapshot.aliases:
+            snapshot.add([self.task])
         logs = snapshot.reports[snapshot.aliases[self.task]].payload.logs
         if agent.name not in logs:
             logs[agent.name] = []
