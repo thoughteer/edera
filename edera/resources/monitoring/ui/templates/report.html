@@ -4,7 +4,7 @@
 
 {% block content -%}
     <div class='block'>
-        {%- set state = snapshot.reports[alias].state %}
+        {%- set state = core.states[alias] %}
         <div class='block-head'>{{ task_state(alias, state, labeling) }}</div>
         <div class='block-body'>
         {%- if state.failures -%}
@@ -39,14 +39,14 @@
                 </div>
             </div>
         {%- endif -%}
-        {%- if state.dependencies -%}
+        {%- if payload.dependencies -%}
             <div class='block-widget'>
                 <div class='block-widget-head dependencies'>Dependencies</div>
                 <div class='block-widget-body'>
                     <ul>
-                    {%- set dependencies = labeling|selectkeys(state.dependencies) %}
+                    {%- set dependencies = labeling|selectkeys(payload.dependencies) %}
                     {%- for dependency, label in dependencies|dictsort(by="value") %}
-                        {%- set satisfied = snapshot.reports[dependency].state.completed %}
+                        {%- set satisfied = core.states[dependency].completed %}
                         <li{% if satisfied %} class='satisfied'{% endif %}>
                             {{- "" -}}
                             <a href='{{ url_for("report", alias=dependency) }}'>{{ label }}</a>

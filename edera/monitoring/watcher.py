@@ -11,6 +11,7 @@ from edera.invokers import PersistentInvoker
 from edera.linearizers import DFSLinearizer
 from edera.monitoring.agent import MonitoringAgent
 from edera.monitoring.snapshot import MonitoringSnapshot
+from edera.monitoring.snapshot import MonitoringSnapshotCore
 from edera.monitoring.snapshot import TaskPayload
 from edera.routine import routine
 
@@ -30,7 +31,7 @@ class MonitorWatcher(object):
         """
         self.monitor = monitor
 
-    def load_payload(self, alias):
+    def load_task_payload(self, alias):
         """
         Load the last available payload for the task alias.
 
@@ -43,19 +44,19 @@ class MonitorWatcher(object):
         Raises:
             StorageOperationError if something went wrong with the storage
         """
-        return self.__load_payload(alias)
+        return self.__load_task_payload(alias)
 
-    def load_snapshot(self):
+    def load_snapshot_core(self):
         """
-        Load the last available snapshot.
+        Load the last available snapshot core.
 
         Returns:
-            Optional[MonitoringSnapshot]
+            Optional[MonitoringSnapshotCore]
 
         Raises:
             StorageOperationError if something went wrong with the storage
         """
-        return self.__load_snapshot()
+        return self.__load_snapshot_core()
 
     @routine
     def recover(self):
@@ -69,11 +70,12 @@ class MonitorWatcher(object):
         if checkpoint is None:
             yield (MonitorWatcherCheckpoint({}, None, {}), MonitoringSnapshot.void())
             return
-        snapshot = self.__load_snapshot(version=checkpoint.snapshot_version)
+        core = self.__load_snapshot_core(version=checkpoint.core_version)
+        payloads = {}
         for alias, payload_version in six.iteritems(checkpoint.payload_versions):
             yield
-            snapshot.reports[alias].payload = self.__load_payload(alias, version=payload_version)
-        yield (checkpoint, snapshot)
+            payloads[alias] = self.__load_task_payload(alias, version=payload_version)
+        yield (checkpoint, MonitoringSnapshot(core, payloads))
 
     @routine
     def run(self, delay=datetime.timedelta(seconds=3)):
@@ -81,10 +83,10 @@ class MonitorWatcher(object):
         Run the aggregation cycle.
 
         Periodically
-        - collects new snapshot updates
-        - applies them to the snapshot
-        - augments the snapshot
-        - saves it
+          - collects new snapshot updates
+          - applies them to the snapshot
+          - augments the snapshot
+          - saves it
 
         Updates from the same agent will be applied in chronological order.
         Each update will be applied exactly once.
@@ -102,21 +104,21 @@ class MonitorWatcher(object):
                 cursor = checkpoint.cursors.get(agent.name)
                 for version, update in reversed(agent.pull(since=cursor)):
                     for task in update.apply(snapshot, agent):
-                        affected.add(snapshot.aliases[task])
+                        affected.add(snapshot.core.aliases[task])
                     checkpoint.cursors[agent.name] = version + 1
             augment()
             yield
-            checkpoint.snapshot_version = self.monitor.put("snapshot", snapshot.serialize())
+            checkpoint.core_version = self.monitor.put("core", snapshot.core.serialize())
             for alias in set(affected):
                 yield
-                payload = snapshot.reports[alias].payload
+                payload = snapshot.payloads[alias]
                 new_payload_version = self.monitor.put("payload/" + alias, payload.serialize())
                 affected.remove(alias)
                 commited.add(alias)
                 checkpoint.payload_versions[alias] = new_payload_version
             new_checkpoint_version = self.monitor.put("checkpoint", checkpoint.serialize())
             self.monitor.delete("checkpoint", till=new_checkpoint_version)
-            self.monitor.delete("snapshot", till=checkpoint.snapshot_version)
+            self.monitor.delete("core", till=checkpoint.core_version)
             for alias in set(commited):
                 yield
                 self.monitor.delete("payload/" + alias, till=checkpoint.payload_versions[alias])
@@ -129,17 +131,18 @@ class MonitorWatcher(object):
 
         def augment():
             graph = Graph()
-            for alias in snapshot.reports:
+            for alias in snapshot.core.states:
                 graph.add(alias)
-            for alias in snapshot.reports:
-                for dependency in snapshot.reports[alias].state.dependencies:
+            for alias in graph:
+                for dependency in (snapshot.payloads[alias].dependencies or ()):
                     graph.link(dependency, alias)
             pending = set()
             for alias in DFSLinearizer().linearize(graph):
-                state = snapshot.reports[alias].state
+                state = snapshot.core.states[alias]
                 if state.completed:
                     continue
-                if not state.phony or state.dependencies.intersection(pending):
+                dependencies = snapshot.payloads[alias].dependencies or set()
+                if not state.phony or dependencies.intersection(pending):
                     pending.add(alias)
                     continue
                 state.completed = True
@@ -154,19 +157,19 @@ class MonitorWatcher(object):
         records = self.monitor.get("checkpoint", limit=1)
         return MonitorWatcherCheckpoint.deserialize(records[0][1]) if records else None
 
-    def __load_payload(self, alias, version=None):
+    def __load_task_payload(self, alias, version=None):
         arguments = {"limit": 1} if version is None else {"since": version}
         records = self.monitor.get("payload/" + alias, **arguments)
         if version is not None and (not records or records[-1][0] != version):
             raise MonitorInconsistencyError("invalid payload version for %s: %d" % (alias, version))
         return TaskPayload.deserialize(records[-1][1]) if records else None
 
-    def __load_snapshot(self, version=None):
+    def __load_snapshot_core(self, version=None):
         arguments = {"limit": 1} if version is None else {"since": version}
-        records = self.monitor.get("snapshot", **arguments)
+        records = self.monitor.get("core", **arguments)
         if version is not None and (not records or records[-1][0] != version):
-            raise MonitorInconsistencyError("invalid snapshot version: %d" % version)
-        return MonitoringSnapshot.deserialize(records[-1][1]) if records else None
+            raise MonitorInconsistencyError("invalid snapshot core version: %d" % version)
+        return MonitoringSnapshotCore.deserialize(records[-1][1]) if records else None
 
 
 class MonitorWatcherCheckpoint(Serializable):
@@ -175,18 +178,18 @@ class MonitorWatcherCheckpoint(Serializable):
 
     Attributes:
         cursors (Mapping[String, Integer]) - the cursors (update versions) by agent name
-        snapshot_version (Optional[Integer]) - the version of the snapshot
+        core_version (Optional[Integer]) - the version of the snapshot core
             Could be $None if there were no saved snapshots.
         payload_versions (Mapping[String, Integer]) - the payload versions by task alias
     """
 
-    def __init__(self, cursors, snapshot_version, payload_versions):
+    def __init__(self, cursors, core_version, payload_versions):
         """
         Args:
             cursors (Mapping[String, Integer])
-            snapshot_version (Optional[Integer])
+            core_version (Optional[Integer])
             payload_versions (Mapping[String, Integer])
         """
         self.cursors = cursors
-        self.snapshot_version = snapshot_version
+        self.core_version = core_version
         self.payload_versions = payload_versions

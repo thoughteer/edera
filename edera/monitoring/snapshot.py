@@ -7,43 +7,53 @@ import edera.helpers
 from edera.helpers import Serializable
 
 
-class MonitoringSnapshot(Serializable):
+class MonitoringSnapshot(object):
     """
-    A monitoring snapshot that holds general information about the workflow.
+    A monitoring snapshot that holds important information about the workflow.
 
     Attributes:
-        aliases (Mapping[String, String]) - the aliases by task name
-        reports (Mapping[String, TaskReport]) - the task reports by alias
-        timestamp (DateTime) - the time the snapshot was last actualized
+        core (MonitoringSnapshotCore)
+        payloads (Mapping[String, TaskPayload]) - the task payloads by alias
 
     See also:
         $MonitoringAgent
-        $TaskReport
+        $MonitoringSnapshotCore
+        $TaskPayload
     """
 
-    def __init__(self, aliases, reports):
+    def __contains__(self, task):
+        """
+        Check whether the task has been already added to the snapshot.
+
+        Args:
+            task (String) - a task name to look for
+
+        Returns:
+            Boolean - True iff the task has been already added to the snapshot
+        """
+        return task in self.core.aliases
+
+    def __init__(self, core, payloads):
         """
         Args:
-            aliases (Mapping[String, String]) - aliases by task name
-            reports (Mapping[String, TaskReport]) - task reports by alias
+            core (MonitoringSnapshotCore)
+            payloads (Mapping[String, TaskPayload]) - task payloads by alias
         """
-        self.aliases = aliases
-        self.reports = reports
-        self.timestamp = edera.helpers.now()
+        self.core = core
+        self.payloads = payloads
 
     def add(self, tasks):
         """
         Add the new tasks to the snapshot.
 
-        Creates initial reports for the tasks.
+        Updates the core and creates empty payloads for the tasks.
 
         Args:
-            tasks (Iterable[String]) - task names to add
+            tasks (List[String]) - task names to add
         """
+        self.core.add(tasks)
         for task in tasks:
-            alias = edera.helpers.sha1(task)[:10]
-            self.aliases[task] = alias
-            self.reports[alias] = TaskReport(TaskState(task), TaskPayload())
+            self.payloads[self.core.aliases[task]] = TaskPayload()
 
     @classmethod
     def void(cls):
@@ -53,38 +63,45 @@ class MonitoringSnapshot(Serializable):
         Returns:
             MonitoringSnapshot
         """
-        return cls({}, {})
+        return cls(MonitoringSnapshotCore({}, {}), {})
 
 
-class TaskReport(object):
+class MonitoringSnapshotCore(Serializable):
     """
-    A task report that holds all the information about a particular task.
+    A monitoring snapshot core that holds basic information about the workflow.
 
     Attributes:
-        state (TaskState) - the state of the task (essential information)
-        payload (TaskPayload) - auxiliary information associated with the task
-            Doesn't get serialized with the snapshot.
+        aliases (Mapping[String, String]) - the aliases by task name
+        states (Mapping[String, TaskState]) - the task states by alias
+        timestamp (DateTime) - the time the snapshot was last actualized
 
     See also:
-        $TaskPayload
         $TaskState
     """
 
-    def __getstate__(self):
-        return self.state
-
-    def __init__(self, state, payload):
+    def __init__(self, aliases, states):
         """
         Args:
-            state (TaskState)
-            payload (TaskPayload)
+            aliases (Mapping[String, String]) - aliases by task name
+            states (Mapping[String, TaskState]) - task states by alias
         """
-        self.state = state
-        self.payload = payload
+        self.aliases = aliases
+        self.states = states
+        self.timestamp = edera.helpers.now()
 
-    def __setstate__(self, value):
-        self.state = value
-        self.payload = TaskPayload()
+    def add(self, tasks):
+        """
+        Add the new tasks to the snapshot core.
+
+        Creates aliases and initial states for the tasks.
+
+        Args:
+            tasks (Iterable[String]) - task names to add
+        """
+        for task in tasks:
+            alias = edera.helpers.sha1(task)[:10]
+            self.aliases[task] = alias
+            self.states[alias] = TaskState(task)
 
 
 class TaskState(object):
@@ -99,7 +116,6 @@ class TaskState(object):
         failures (Mapping[String, DateTime]) - names of failed agents (+ last timestamps)
         span (Optional[Tuple[DateTime, DateTime]]) - the start time and the finish time
                 of the first successful execution attempt
-        dependencies (Set[String]) - the set of aliases of tasks that the task depends on
         announcement (Any) - the announcement provided by the task via annotation
             Should be pickling-friendly.
     """
@@ -115,7 +131,6 @@ class TaskState(object):
         self.runs = {}
         self.failures = {}
         self.span = None
-        self.dependencies = set()
         self.announcement = None
 
 
@@ -124,11 +139,13 @@ class TaskPayload(Serializable):
     A basic task payload.
 
     Attributes:
+        dependencies (Optional[Set[String]]) - the set of aliases of tasks that the task depends on
         logs (Mapping[String, List[Tuple[DateTime, String]]]) - log messages, grouped by agent name,
                 with corresponding timestamps
     """
 
     def __init__(self):
+        self.dependencies = None
         self.logs = {}
 
 
@@ -178,18 +195,21 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
         self.announcements = announcements
 
     def apply(self, snapshot, agent):
-        snapshot.add(task for task in self.dependencies if task not in snapshot.aliases)
+        snapshot.add([task for task in self.dependencies if task not in snapshot])
         for task in self.dependencies:
-            state = snapshot.reports[snapshot.aliases[task]].state
+            alias = snapshot.core.aliases[task]
+            state = snapshot.core.states[alias]
             state.phony = task in self.phonies
             state.announcement = self.announcements.get(task)
-            state.dependencies |= {
-                snapshot.aliases[dependency]
-                for dependency in self.dependencies[task]
-            }
             if agent.name in state.runs:
                 del state.runs[agent.name]
-        return []
+            payload = snapshot.payloads[alias]
+            if payload.dependencies is None:
+                payload.dependencies = {
+                    snapshot.core.aliases[dependency]
+                    for dependency in self.dependencies[task]
+                }
+                yield task
 
 
 class TaskStatusUpdate(MonitoringSnapshotUpdate):
@@ -214,9 +234,9 @@ class TaskStatusUpdate(MonitoringSnapshotUpdate):
         self.timestamp = timestamp
 
     def apply(self, snapshot, agent):
-        if self.task not in snapshot.aliases:
+        if self.task not in snapshot:
             snapshot.add([self.task])
-        state = snapshot.reports[snapshot.aliases[self.task]].state
+        state = snapshot.core.states[snapshot.core.aliases[self.task]]
         if self.status == "completed":
             state.completed = True
             if agent.name in state.runs:
@@ -259,9 +279,9 @@ class TaskLogUpdate(MonitoringSnapshotUpdate):
         self.timestamp = timestamp
 
     def apply(self, snapshot, agent):
-        if self.task not in snapshot.aliases:
+        if self.task not in snapshot:
             snapshot.add([self.task])
-        logs = snapshot.reports[snapshot.aliases[self.task]].payload.logs
+        logs = snapshot.payloads[snapshot.core.aliases[self.task]].logs
         if agent.name not in logs:
             logs[agent.name] = []
         log = logs[agent.name]
