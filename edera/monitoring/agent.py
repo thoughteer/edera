@@ -32,7 +32,7 @@ class MonitoringAgent(Nameable):
 
     Default agents:
       - track the topology of the task graph
-      - publish task announcements
+      - publish task baggages
       - report statuses of the tasks
       - collect logs during task execution
 
@@ -109,11 +109,11 @@ class MonitoringAgent(Nameable):
             for task in workflow
         }
         phonies = {task.name for task in workflow if task.execute is Phony}
-        announcements = {
-            task.name: workflow[task].annotation.get("announcement")
+        baggages = {
+            task.name: workflow[task].annotation.get("baggage")
             for task in workflow
         }
-        self.push(WorkflowUpdate(dependencies, phonies, announcements))
+        self.push(WorkflowUpdate(dependencies, phonies, baggages))
         result = workflow.clone()
         for task in result:
             if task.execute is Phony:

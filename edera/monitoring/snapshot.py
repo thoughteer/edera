@@ -116,8 +116,8 @@ class TaskState(object):
         failures (Mapping[String, DateTime]) - names of failed agents (+ last timestamps)
         span (Optional[Tuple[DateTime, DateTime]]) - the start time and the finish time
                 of the first successful execution attempt
-        announcement (Any) - the announcement provided by the task via annotation
-            Should be pickling-friendly.
+        baggage (Any) - the baggage provided by the task via annotation
+            Should be serializable.
     """
 
     def __init__(self, name):
@@ -131,7 +131,7 @@ class TaskState(object):
         self.runs = {}
         self.failures = {}
         self.span = None
-        self.announcement = None
+        self.baggage = None
 
 
 class TaskPayload(Serializable):
@@ -175,24 +175,24 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
     """
     An update that adds information on task dependencies and "phony" flags to the snapshot.
 
-    It also publishes all the announcements.
+    It also publishes all the baggages.
 
     Attributes:
         dependencies (Mapping[String, Set[String]]) - the dependencies grouped by task name
         phonies (Set[String]) - the names of "phony" tasks
-        announcements (Mapping[String, Any]) - the announcements by task name
+        baggages (Mapping[String, Any]) - the baggages by task name
     """
 
-    def __init__(self, dependencies, phonies, announcements):
+    def __init__(self, dependencies, phonies, baggages):
         """
         Args:
             dependencies (Mapping[String, Set[String]]) - dependencies grouped by task name
             phonies (Set[String]) - names of "phony" tasks
-            announcements (Mapping[String, Any]) - announcements by task name
+            baggages (Mapping[String, Any]) - baggages by task name
         """
         self.dependencies = dependencies
         self.phonies = phonies
-        self.announcements = announcements
+        self.baggages = baggages
 
     def apply(self, snapshot, agent):
         snapshot.add([task for task in self.dependencies if task not in snapshot])
@@ -200,7 +200,7 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
             alias = snapshot.core.aliases[task]
             state = snapshot.core.states[alias]
             state.phony = task in self.phonies
-            state.announcement = self.announcements.get(task)
+            state.baggage = self.baggages.get(task)
             if agent.name in state.runs:
                 del state.runs[agent.name]
             payload = snapshot.payloads[alias]
