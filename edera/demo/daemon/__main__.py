@@ -31,6 +31,9 @@ from edera.testing import ScenarioWithProvidedStubs
 from edera.testing import TestableTask
 
 
+SINK = logging.getLogger("edera.monitoring.sink")
+
+
 class PathExists(Parameterizable, Condition):
 
     path = Parameter()
@@ -111,7 +114,7 @@ class HashEachLine(Parameterizable, Task):
 
     @routine
     def execute(self):
-        logging.getLogger("edera.monitoring.sink").info("Learn more: https://ya.ru?q=sha-1")
+        SINK.info("Learn more: https://ya.ru?q=sha-1")
         yield edera.helpers.sleep.defer(datetime.timedelta(seconds=arguments.sleep))
         with fs.read(self.input_file) as input_stream:
             with fs.create(self.output_file) as output_stream:
@@ -340,7 +343,7 @@ class Welcome(Parameterizable, Task):
     @routine
     def execute(self):
         yield edera.helpers.sleep.defer(datetime.timedelta(seconds=arguments.sleep))
-        logging.getLogger("edera.monitoring.sink").info("Welcome!")
+        SINK.info("Welcome!")
 
 
 class DemoPrelude(StaticDaemonModule):
