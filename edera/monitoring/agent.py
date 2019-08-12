@@ -1,6 +1,7 @@
 import logging
 import threading
 import traceback
+import sys
 
 import edera.helpers
 
@@ -234,8 +235,7 @@ class StatusReportingTaskWrapper(TaskWrapper):
         self.__agent.push(TaskStatusUpdate(self.name, status, edera.helpers.now()))
 
     def __save_traceback(self):
-        message = traceback.format_exc()
-        self.__agent.push(TaskLogUpdate(self.name, message, edera.helpers.now()))
+        self.__agent.push(TaskLogUpdate(self.name, _format_traceback(), edera.helpers.now()))
 
 
 class StatusReportingConditionWrapper(ConditionWrapper):
@@ -276,8 +276,7 @@ class StatusReportingConditionWrapper(ConditionWrapper):
         self.__agent.push(TaskStatusUpdate(self.__task.name, status, edera.helpers.now()))
 
     def __save_traceback(self):
-        message = traceback.format_exc()
-        self.__agent.push(TaskLogUpdate(self.__task.name, message, edera.helpers.now()))
+        self.__agent.push(TaskLogUpdate(self.__task.name, _format_traceback(), edera.helpers.now()))
 
 
 class LogCapturingTaskWrapper(TaskWrapper):
@@ -321,3 +320,11 @@ class LogCapturingTaskWrapper(TaskWrapper):
             yield deferrable(super(LogCapturingTaskWrapper, self).execute).defer()
         finally:
             sink.removeHandler(handler)
+
+
+def _format_traceback():
+    exception_type, exception_value, exception_traceback = sys.exc_info()
+    return "Traceback:\n%s%s" % (
+        traceback.format_tb(exception_traceback)[-1],
+        "".join(traceback.format_exception_only(exception_type, exception_value)).rstrip(),
+    )
