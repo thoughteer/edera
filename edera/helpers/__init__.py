@@ -14,6 +14,7 @@ from .phony import Phony
 from .phony import phony
 from .proxy import Proxy
 from .sasha import Sasha
+from .serializable import AbstractSerializable
 from .serializable import Serializable
 from .utilities import memoized
 from .utilities import now

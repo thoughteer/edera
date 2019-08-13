@@ -1,6 +1,7 @@
 import logging
 import threading
 import traceback
+import sys
 
 import edera.helpers
 
@@ -32,7 +33,7 @@ class MonitoringAgent(Nameable):
 
     Default agents:
       - track the topology of the task graph
-      - publish task announcements
+      - publish task baggages
       - report statuses of the tasks
       - collect logs during task execution
 
@@ -103,19 +104,17 @@ class MonitoringAgent(Nameable):
         Returns:
             Graph - an altered task graph
         """
+        self.register()
         dependencies = {
             task.name: {parent.name for parent in workflow[task].parents}
             for task in workflow
         }
         phonies = {task.name for task in workflow if task.execute is Phony}
-        announcements = {
-            task.name: workflow[task].annotation.get("announcement")
+        baggages = {
+            task.name: workflow[task].annotation.get("baggage", {})
             for task in workflow
         }
-        workflow_update = WorkflowUpdate(dependencies, phonies, announcements)
-        if not self.register() or not self.push(workflow_update):
-            logging.getLogger(__name__).warning("This time monitoring will be disabled")
-            return workflow
+        self.push(WorkflowUpdate(dependencies, phonies, baggages))
         result = workflow.clone()
         for task in result:
             if task.execute is Phony:
@@ -155,13 +154,10 @@ class MonitoringAgent(Nameable):
         Args:
             update (MonitoringSnapshotUpdate) - an update to push
 
-        Returns:
-            Boolean - whether the operation succeeded
-
         Raises:
             AssertionError if the agent is read-only
         """
-        return self.__push(self.__key, update.serialize())
+        self.__push(self.__key, update.serialize())
 
     @property
     def readonly(self):
@@ -171,13 +167,10 @@ class MonitoringAgent(Nameable):
         """
         Register the agent in the monitor.
 
-        Returns:
-            Boolean - whether the operation succeeded
-
         Raises:
             AssertionError if the agent is read-only
         """
-        return self.__push("agent", self.name)
+        self.__push("agent", self.name)
 
     def __push(self, key, value):
         assert not self.readonly
@@ -185,8 +178,6 @@ class MonitoringAgent(Nameable):
             self.__consumer.push((key, value))
         except ConsumptionError:
             logging.getLogger(__name__).warning("Consumer rejected a monitoring record")
-            return False
-        return True
 
 
 class StatusReportingTaskWrapper(TaskWrapper):
@@ -244,8 +235,7 @@ class StatusReportingTaskWrapper(TaskWrapper):
         self.__agent.push(TaskStatusUpdate(self.name, status, edera.helpers.now()))
 
     def __save_traceback(self):
-        message = traceback.format_exc()
-        self.__agent.push(TaskLogUpdate(self.name, message, edera.helpers.now()))
+        self.__agent.push(TaskLogUpdate(self.name, _format_traceback(), edera.helpers.now()))
 
 
 class StatusReportingConditionWrapper(ConditionWrapper):
@@ -286,8 +276,7 @@ class StatusReportingConditionWrapper(ConditionWrapper):
         self.__agent.push(TaskStatusUpdate(self.__task.name, status, edera.helpers.now()))
 
     def __save_traceback(self):
-        message = traceback.format_exc()
-        self.__agent.push(TaskLogUpdate(self.__task.name, message, edera.helpers.now()))
+        self.__agent.push(TaskLogUpdate(self.__task.name, _format_traceback(), edera.helpers.now()))
 
 
 class LogCapturingTaskWrapper(TaskWrapper):
@@ -331,3 +320,11 @@ class LogCapturingTaskWrapper(TaskWrapper):
             yield deferrable(super(LogCapturingTaskWrapper, self).execute).defer()
         finally:
             sink.removeHandler(handler)
+
+
+def _format_traceback():
+    exception_type, exception_value, exception_traceback = sys.exc_info()
+    return "Traceback:\n%s%s" % (
+        traceback.format_tb(exception_traceback)[-1],
+        "".join(traceback.format_exception_only(exception_type, exception_value)).rstrip(),
+    )
