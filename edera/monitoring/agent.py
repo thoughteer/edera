@@ -111,7 +111,7 @@ class MonitoringAgent(Nameable):
         }
         phonies = {task.name for task in workflow if task.execute is Phony}
         baggages = {
-            task.name: workflow[task].annotation.get("baggage")
+            task.name: workflow[task].annotation.get("baggage", {})
             for task in workflow
         }
         self.push(WorkflowUpdate(dependencies, phonies, baggages))

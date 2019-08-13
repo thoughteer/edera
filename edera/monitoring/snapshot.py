@@ -1,10 +1,18 @@
 import abc
 
-import six
-
 import edera.helpers
 
+from edera.helpers import AbstractSerializable
 from edera.helpers import Serializable
+from edera.helpers.serializable import BooleanField
+from edera.helpers.serializable import DateTimeField
+from edera.helpers.serializable import GenericField
+from edera.helpers.serializable import ListField
+from edera.helpers.serializable import MappingField
+from edera.helpers.serializable import OptionalField
+from edera.helpers.serializable import SetField
+from edera.helpers.serializable import StringField
+from edera.helpers.serializable import TupleField
 
 
 class MonitoringSnapshot(object):
@@ -66,6 +74,44 @@ class MonitoringSnapshot(object):
         return cls(MonitoringSnapshotCore({}, {}), {})
 
 
+class TaskState(Serializable):
+    """
+    A basic task state.
+
+    Attributes:
+        name (String) - the task name
+        phony (Boolean) - whether the task is "phony"
+        completed (Boolean) - whether the task is completed
+        runs (Mapping[String, DateTime]) - names of agents in progress (+ timestamps)
+        failures (Mapping[String, DateTime]) - names of failed agents (+ last timestamps)
+        span (Optional[Tuple[DateTime, DateTime]]) - the start time and the finish time
+                of the first successful execution attempt
+        baggage (Any) - the baggage provided by the task via annotation
+            Should be serializable.
+    """
+
+    name = StringField
+    phony = BooleanField
+    completed = BooleanField
+    runs = MappingField(StringField, DateTimeField)
+    failures = MappingField(StringField, DateTimeField)
+    span = OptionalField(TupleField(DateTimeField, DateTimeField))
+    baggage = MappingField(StringField, StringField)
+
+    def __init__(self, name):
+        """
+        Args:
+            name (String) - a task name
+        """
+        self.name = name
+        self.phony = False
+        self.completed = False
+        self.runs = {}
+        self.failures = {}
+        self.span = None
+        self.baggage = {}
+
+
 class MonitoringSnapshotCore(Serializable):
     """
     A monitoring snapshot core that holds basic information about the workflow.
@@ -78,6 +124,9 @@ class MonitoringSnapshotCore(Serializable):
     See also:
         $TaskState
     """
+
+    aliases = MappingField(StringField, StringField)
+    states = MappingField(StringField, GenericField(TaskState))
 
     def __init__(self, aliases, states):
         """
@@ -104,36 +153,6 @@ class MonitoringSnapshotCore(Serializable):
             self.states[alias] = TaskState(task)
 
 
-class TaskState(object):
-    """
-    A basic task state.
-
-    Attributes:
-        name (String) - the task name
-        phony (Boolean) - whether the task is "phony"
-        completed (Boolean) - whether the task is completed
-        runs (Mapping[String, DateTime]) - names of agents in progress (+ timestamps)
-        failures (Mapping[String, DateTime]) - names of failed agents (+ last timestamps)
-        span (Optional[Tuple[DateTime, DateTime]]) - the start time and the finish time
-                of the first successful execution attempt
-        baggage (Any) - the baggage provided by the task via annotation
-            Should be serializable.
-    """
-
-    def __init__(self, name):
-        """
-        Args:
-            name (String) - a task name
-        """
-        self.name = name
-        self.phony = False
-        self.completed = False
-        self.runs = {}
-        self.failures = {}
-        self.span = None
-        self.baggage = None
-
-
 class TaskPayload(Serializable):
     """
     A basic task payload.
@@ -144,13 +163,15 @@ class TaskPayload(Serializable):
                 with corresponding timestamps
     """
 
+    dependencies = OptionalField(SetField(StringField))
+    logs = MappingField(StringField, ListField(TupleField(DateTimeField, StringField)))
+
     def __init__(self):
         self.dependencies = None
         self.logs = {}
 
 
-@six.add_metaclass(abc.ABCMeta)
-class MonitoringSnapshotUpdate(Serializable):
+class MonitoringSnapshotUpdate(AbstractSerializable):
     """
     A monitoring snapshot update.
 
@@ -182,6 +203,10 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
         phonies (Set[String]) - the names of "phony" tasks
         baggages (Mapping[String, Any]) - the baggages by task name
     """
+
+    dependencies = MappingField(StringField, SetField(StringField))
+    phonies = SetField(StringField)
+    baggages = MappingField(StringField, MappingField(StringField, StringField))
 
     def __init__(self, dependencies, phonies, baggages):
         """
@@ -221,6 +246,10 @@ class TaskStatusUpdate(MonitoringSnapshotUpdate):
         status (String) - "running", "stopped", "failed", or "completed"
         timestamp (DateTime) - the timestamp of the update
     """
+
+    task = StringField
+    status = StringField
+    timestamp = DateTimeField
 
     def __init__(self, task, status, timestamp):
         """
@@ -264,6 +293,10 @@ class TaskLogUpdate(MonitoringSnapshotUpdate):
     Constants:
         LIMIT (Integer) - the maximum number of last messages to store (per agent)
     """
+
+    task = StringField
+    message = StringField
+    timestamp = DateTimeField
 
     LIMIT = 10
 

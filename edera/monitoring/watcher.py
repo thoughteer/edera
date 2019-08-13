@@ -7,6 +7,10 @@ import edera.helpers
 from edera.exceptions import MonitorInconsistencyError
 from edera.graph import Graph
 from edera.helpers import Serializable
+from edera.helpers.serializable import IntegerField
+from edera.helpers.serializable import MappingField
+from edera.helpers.serializable import OptionalField
+from edera.helpers.serializable import StringField
 from edera.invokers import PersistentInvoker
 from edera.linearizers import DFSLinearizer
 from edera.monitoring.agent import MonitoringAgent
@@ -182,6 +186,10 @@ class MonitorWatcherCheckpoint(Serializable):
             Could be $None if there were no saved snapshots.
         payload_versions (Mapping[String, Integer]) - the payload versions by task alias
     """
+
+    cursors = MappingField(StringField, IntegerField)
+    core_version = OptionalField(IntegerField)
+    payload_versions = MappingField(StringField, IntegerField)
 
     def __init__(self, cursors, core_version, payload_versions):
         """
