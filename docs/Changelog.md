@@ -1,5 +1,17 @@
 # Changelog
 
+### 0.11
+
+* Added support for Python 3.7
+* Implemented buffering on monitoring agents
+* Fixed all known issues with `Proxy`
+* Replaced pickling with custom interpreter-independent serialization
+* Started to ignore monitor-related errors
+* Limited tracebacks in the monitoring UI up to one last call
+* Refactored `MonitoringSnapshot` (separated its core from task payloads)
+* Made snapshot updates more reliable
+* Added more debug logging
+
 ### 0.10.5
 
 * Re-fixed URL highlighting in the monitoring UI
