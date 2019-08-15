@@ -76,14 +76,16 @@ class CachingConditionWrapper(ConditionWrapper):
                 yield True
                 return
             cached = False
-        except StorageOperationError:
-            pass  # not sure if really not cached
+        except StorageOperationError as error:
+            # not sure if really not cached
+            logging.getLogger(__name__).debug("Failed to read from cache: %s", error)
         result = yield deferrable(super(CachingConditionWrapper, self).check).defer()
         if result and not cached:
             try:
                 logging.getLogger(__name__).debug("Caching %r", self)
                 self.cache.put(edera.helpers.sha1(self.name), "!")
                 logging.getLogger(__name__).debug("Stored in cache")
-            except StorageOperationError:
-                pass  # whatever
+            except StorageOperationError as error:
+                # whatever
+                logging.getLogger(__name__).debug("Failed to write to cache: %s", error)
         yield result

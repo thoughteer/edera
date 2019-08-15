@@ -4,7 +4,7 @@
 
 {% block content -%}
     {%- for alias, _ in ranking|dictsort(by="value") %}
-        {%- set state = snapshot.reports[alias].state %}
+        {%- set state = core.states[alias] %}
         {%- if mode == "full" or not state.completed %}
             <div class='block'>
                 <div class='block-head'>{{ task_state(alias, state, labeling) }}</div>

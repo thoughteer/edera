@@ -11,15 +11,15 @@ class MonitoringWorkflowExecutor(WorkflowExecutor):
         $MonitoringAgent
     """
 
-    def __init__(self, base, agency):
+    def __init__(self, base, agent):
         """
         Args:
             base (WorkflowExecutor) - a base workflow executor
-            agency (Callable[[], MonitoringAgent]) - a monitoring agency (assigns agents on demand)
+            agent (MonitoringAgent) - a monitoring agent
         """
         self.__base = base
-        self.__agency = agency
+        self.__agent = agent
 
     @routine
     def execute(self, workflow):
-        yield deferrable(self.__base.execute).defer(self.__agency().embrace(workflow))
+        yield deferrable(self.__base.execute).defer(self.__agent.embrace(workflow))

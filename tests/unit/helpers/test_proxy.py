@@ -1,5 +1,6 @@
 import pytest
 
+from edera.helpers import MultiBox
 from edera.helpers import Proxy
 from edera.helpers import SimpleBox
 
@@ -41,3 +42,48 @@ def test_proxy_reinstantiates_subject_when_needed():
     assert proxy.counter == 1
     box.put(None)
     assert proxy.counter == 2
+
+
+def test_proxy_can_proxy_proxies_to_builtin_derivatives():
+
+    class T(tuple):
+        def __new__(cls):
+            return ()
+
+    class P(T):
+        def __new__(cls):
+            return Proxy(SimpleBox(), T)
+
+    assert len(Proxy(SimpleBox(), P)) == 0
+
+
+def test_proxy_uses_correct_new_method_to_create_itself():
+
+    class A(list):
+
+        def __new__(cls):
+            counter[0] += 1
+            return [1, 2, 3]
+
+    class B(A):
+
+        def __new__(cls):
+            return Proxy(SimpleBox(), A)
+
+    class C(B):
+
+        def __new__(cls):
+            return Proxy(MultiBox(lambda: dispatcher.get()), B)
+
+    counter = [0]
+    dispatcher = SimpleBox()
+    c = C()
+    dispatcher.put(1)
+    assert len(c) == 3
+    assert counter[0] == 1
+    dispatcher.put(2)
+    assert len(c) == 3
+    assert counter[0] == 2
+    dispatcher.put(1)
+    assert len(c) == 3
+    assert counter[0] == 2

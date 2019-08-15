@@ -46,10 +46,10 @@ class Proxy(object):
         [1, 2]
     """
 
-    def __new__(cls, instance_holder, subject_class, *args, **kwargs):
+    def __new__(cls, subject_holder, subject_class, *args, **kwargs):
         """
         Args:
-            instance_holder (Box) - a box to store the subject in
+            subject_holder (Box) - a box to store the subject in
             subject_class (Type) - a class to proxy
             *args, **kwargs - arguments to pass to the subject constructor
         """
@@ -60,20 +60,17 @@ class Proxy(object):
                 return subject_class(*args, **kwargs)
 
             def method(self, *args, **kwargs):
-                subject = instance_holder.get()
+                subject = subject_holder.get()
                 if subject is None:
                     subject = instantiate()
-                    instance_holder.put(subject)
+                    subject_holder.put(subject)
                 return object.__getattribute__(subject, method_name)(*args, **kwargs)
 
             return method
 
-        body = dict(object.__dict__)
-        special_subject_class_methods = {
-            name
-            for name, _ in inspect.getmembers(subject_class)
-            if name in SPECIAL_METHODS
+        body = {
+            method_name: proxy(method_name)
+            for method_name, _ in inspect.getmembers(subject_class)
+            if method_name in SPECIAL_METHODS
         }
-        for method_name in special_subject_class_methods:
-            body[method_name] = proxy(method_name)
-        return type.__new__(type, subject_class.__name__, subject_class.__bases__, body)()
+        return type.__new__(subject_class.__class__, subject_class.__name__, (), body)()

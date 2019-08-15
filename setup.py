@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name="edera",
-    version="0.10.5",
+    version="0.11",
     description="A distributed workflow management framework",
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -17,6 +17,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Topic :: System :: Distributed Computing",
     ],
     keywords="workflow task schedule distributed dependency management",

@@ -11,7 +11,7 @@ def colorful(bean_class):
 
 
 def threadsafe(bean_class):
-    return split(os.getpid, threading.current_thread)(bean_class)
+    return split(os.getpid, lambda: threading.current_thread().ident)(bean_class)
 
 
 Beanbag(__name__)

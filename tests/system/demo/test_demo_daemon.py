@@ -4,7 +4,7 @@ import sys
 import threading
 import time
 
-from edera.monitoring import MonitoringSnapshot
+from edera.monitoring import MonitorWatcher
 from edera.storages import SQLiteStorage
 
 
@@ -42,11 +42,11 @@ def test_demo_daemon_fails_if_launched_with_no_arguments():
     assert process.returncode > 0
 
 
-def test_demo_daemon_works_fine_in_testing_mode(tmpdir):
+def test_demo_daemon_works_fine_in_testing_mode(debugger, tmpdir):
     command = ["python", "-m", "edera.demo.daemon", "-d", "-t", str(tmpdir), "-s", "0"]
     process = subprocess.Popen(command, stderr=subprocess.PIPE)
     failure = start_analysis(process.stderr)
-    failure.wait(timeout=90.0)
+    failure.wait(timeout=180.0)
     try:
         assert not failure.is_set()
     finally:
@@ -62,7 +62,7 @@ def test_demo_daemon_works_fine_in_production_mode(debugger, tmpdir):
     command = ["python", "-m", "edera.demo.daemon", "-d", str(tmpdir), "-s", "0"]
     process = subprocess.Popen(command, stderr=subprocess.PIPE)
     failure = start_analysis(process.stderr)
-    failure.wait(timeout=90.0)
+    failure.wait(timeout=120.0)
     try:
         assert not failure.is_set()
     finally:
@@ -76,8 +76,9 @@ def test_demo_daemon_works_fine_in_production_mode(debugger, tmpdir):
     assert len(children) >= 5
     assert sum(1 for child in children if len(child.basename) != 16) <= 1
     monitor = SQLiteStorage(str(tmpdir.join("monitor.db")))
-    snapshot = MonitoringSnapshot.deserialize(monitor.get("snapshot", limit=1)[0][1])
-    assert len(snapshot.aliases) == len(snapshot.reports) >= 23
-    assert sum(1 for alias in snapshot.reports if snapshot.reports[alias].state.completed) >= 16
-    assert sum(1 for alias in snapshot.reports if snapshot.reports[alias].state.runs) >= 1
-    assert sum(1 for alias in snapshot.reports if snapshot.reports[alias].state.phony) >= 6
+    watcher = MonitorWatcher(monitor)
+    core = watcher.load_snapshot_core()
+    assert len(core.aliases) == len(core.states) >= 23
+    assert sum(1 for alias in core.states if core.states[alias].completed) >= 16
+    assert sum(1 for alias in core.states if core.states[alias].runs) >= 1
+    assert sum(1 for alias in core.states if core.states[alias].phony) >= 6

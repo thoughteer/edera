@@ -65,6 +65,9 @@ def split(*selectors):
     Args:
         selectors (Tuple[Callable[[], Any]...])
 
+    Returns:
+        Type
+
     See also:
         $MultiBox
         $Proxy

@@ -25,6 +25,7 @@ class MonitoringUI(flask.Flask):
 
     Attributes:
         caption (String) - the caption to show in the header
+        watcher (MonitorWatcher) - the monitor watcher used to load snapshots
 
     Examples:
         Here is how you can run the UI in developer mode using a MongoDB-based storage:
@@ -33,22 +34,24 @@ class MonitoringUI(flask.Flask):
             >>> from edera.helpers import Lazy
             >>> from edera.storages import MongoStorage
             >>> from edera.monitoring import MonitoringUI
+            >>> from edera.monitoring import MonitorWatcher
             >>> monitor = MongoStorage(Lazy[pymongo.MongoClient](), "edera", "monitor")
-            >>> MonitoringUI("example", monitor).run(debug=True)
+            >>> watcher = MonitorWatcher(monitor)
+            >>> MonitoringUI("example", watcher).run(debug=True)
 
     See also:
         $MonitorWatcher
     """
 
-    def __init__(self, caption, monitor):
+    def __init__(self, caption, watcher):
         """
         Args:
             caption (String) - a caption to show in the header
-            monitor (Storage) - a storage that keeps snapshots
+            watcher (MonitorWatcher) - a monitor watcher to use to load snapshots
         """
         flask.Flask.__init__(self, __name__)
         self.caption = caption
-        self.__watcher = MonitorWatcher(monitor)
+        self.watcher = watcher
         self.__configure()
 
     def __configure(self):
@@ -103,30 +106,30 @@ class MonitoringUI(flask.Flask):
 
         @self.route("/")
         def index():
-            snapshot = self.__watcher.load_snapshot()
-            if snapshot is None:
+            core = self.watcher.load_snapshot_core()
+            if core is None:
                 return flask.render_template("void.html", caption=self.caption)
-            labeling = self.__label_tasks(snapshot)
-            ranking = self.__rank_tasks(snapshot)
+            labeling = self.__label_tasks(core)
+            ranking = self.__rank_tasks(core)
             return flask.render_template(
                 "index.html",
                 caption=self.caption,
-                snapshot=snapshot,
+                core=core,
                 labeling=labeling,
                 ranking=ranking,
                 mode=flask.request.args.get("mode", "short"))
 
         @self.route("/report/<alias>")
         def report(alias):
-            snapshot = self.__watcher.load_snapshot()
-            if snapshot is None or alias not in snapshot.reports:
+            core = self.watcher.load_snapshot_core()
+            if core is None or alias not in core.states:
                 flask.abort(404)
-            labeling = self.__label_tasks(snapshot)
-            payload = self.__watcher.load_payload(alias)
+            labeling = self.__label_tasks(core)
+            payload = self.watcher.load_task_payload(alias)
             return flask.render_template(
                 "report.html",
                 caption=self.caption,
-                snapshot=snapshot,
+                core=core,
                 labeling=labeling,
                 alias=alias,
                 payload=payload)
@@ -136,20 +139,20 @@ class MonitoringUI(flask.Flask):
         self.static_folder = os.path.abspath(
             pkg_resources.resource_filename("edera", "resources/monitoring/ui/static"))
 
-    def __label_tasks(self, snapshot):
-        tasks = list(snapshot.aliases)
-        aliases = [snapshot.aliases[task] for task in tasks]
+    def __label_tasks(self, core):
+        tasks = list(core.aliases)
+        aliases = [core.aliases[task] for task in tasks]
         labels = edera.helpers.squash_strings(tasks)
         return dict(zip(aliases, labels))
 
-    def __rank_tasks(self, snapshot):
+    def __rank_tasks(self, core):
         return {
             alias: (
-                not report.state.failures,
-                report.state.completed,
-                report.state.phony,
-                not report.state.runs,
-                report.state.name,
+                not state.failures,
+                state.completed,
+                state.phony,
+                not state.runs,
+                state.name,
             )
-            for alias, report in six.iteritems(snapshot.reports)
+            for alias, state in six.iteritems(core.states)
         }

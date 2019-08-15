@@ -1,7 +1,8 @@
 import argparse
 import os.path
 
-from edera.monitoring.ui import MonitoringUI
+from edera.monitoring import MonitoringUI
+from edera.monitoring import MonitorWatcher
 from edera.storages import SQLiteStorage
 
 
@@ -11,4 +12,5 @@ if __name__ == "__main__":
     parser.add_argument("root", metavar="ROOT", help="root directory")
     arguments = parser.parse_args()
     monitor = SQLiteStorage(os.path.join(arguments.root, "monitor.db"))
-    MonitoringUI("Edera Demo", monitor).run(port=arguments.port, debug=True)
+    watcher = MonitorWatcher(monitor)
+    MonitoringUI("Edera Demo", watcher).run(port=arguments.port, debug=True)
