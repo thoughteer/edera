@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.11.1
+
+* Fixed snapshot timestamp serialization
+
 ### 0.11
 
 * Added support for Python 3.7
