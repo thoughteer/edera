@@ -127,6 +127,7 @@ class MonitoringSnapshotCore(Serializable):
 
     aliases = MappingField(StringField, StringField)
     states = MappingField(StringField, GenericField(TaskState))
+    timestamp = DateTimeField
 
     def __init__(self, aliases, states):
         """
