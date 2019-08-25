@@ -82,6 +82,8 @@ class TaskState(Serializable):
         name (String) - the task name
         phony (Boolean) - whether the task is "phony"
         completed (Boolean) - whether the task is completed
+        stale (Boolean) - whether the task is "stale"
+        agents (Set[String]) - the agents that have reported this task
         runs (Mapping[String, DateTime]) - names of agents in progress (+ timestamps)
         failures (Mapping[String, DateTime]) - names of failed agents (+ last timestamps)
         span (Optional[Tuple[DateTime, DateTime]]) - the start time and the finish time
@@ -93,6 +95,8 @@ class TaskState(Serializable):
     name = StringField
     phony = BooleanField
     completed = BooleanField
+    stale = BooleanField
+    agents = SetField(StringField)
     runs = MappingField(StringField, DateTimeField)
     failures = MappingField(StringField, DateTimeField)
     span = OptionalField(TupleField(DateTimeField, DateTimeField))
@@ -106,6 +110,8 @@ class TaskState(Serializable):
         self.name = name
         self.phony = False
         self.completed = False
+        self.stale = False
+        self.agents = set()
         self.runs = {}
         self.failures = {}
         self.span = None
@@ -222,13 +228,21 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
 
     def apply(self, snapshot, agent):
         snapshot.add([task for task in self.dependencies if task not in snapshot])
-        for task in self.dependencies:
+        for task in snapshot.core.aliases:
             alias = snapshot.core.aliases[task]
             state = snapshot.core.states[alias]
+            if task not in self.dependencies:
+                if agent.name in state.agents:
+                    state.agents.remove(agent.name)
+                    if not state.agents and not state.completed:
+                        state.stale = True
+                continue
             state.phony = task in self.phonies
-            state.baggage = self.baggages.get(task)
+            state.agents.add(agent.name)
+            state.stale = False
             if agent.name in state.runs:
                 del state.runs[agent.name]
+            state.baggage = self.baggages.get(task)
             payload = snapshot.payloads[alias]
             if payload.dependencies is None:
                 payload.dependencies = {

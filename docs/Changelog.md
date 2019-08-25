@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.11.2
+
+* Added "stale" task detection during monitoring
+* Added tooltips for the "phony" and "stale" marks in `MonitoringUI`
+* Silenced storage operation errors in `MonitorWatcher`
+
 ### 0.11.1
 
 * Fixed snapshot timestamp serialization

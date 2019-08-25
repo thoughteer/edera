@@ -61,6 +61,15 @@ li::before {
     vertical-align: super;
 }
 
+.stale::after {
+    color: #CCCCCC;
+    content: "stale";
+    font-size: 0.75em;
+    line-height: 0;
+    margin-left: 0.5em;
+    vertical-align: super;
+}
+
 .task-name {
     color: #AAAAAA;
     font-size: 0.8em;
