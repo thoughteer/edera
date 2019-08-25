@@ -4,7 +4,9 @@ import six
 
 import edera.helpers
 
+from edera.exceptions import ExcusableError
 from edera.exceptions import MonitorInconsistencyError
+from edera.exceptions import StorageOperationError
 from edera.graph import Graph
 from edera.helpers import Serializable
 from edera.helpers.serializable import IntegerField
@@ -101,6 +103,13 @@ class MonitorWatcher(object):
         """
 
         @routine
+        def update():
+            try:
+                yield aggregate.defer()
+            except StorageOperationError as error:
+                raise ExcusableError(error)
+
+        @routine
         def aggregate():
             agents = MonitoringAgent.discover(self.monitor)
             for agent in agents:
@@ -155,7 +164,7 @@ class MonitorWatcher(object):
         checkpoint, snapshot = yield self.recover.defer()
         affected = set()
         commited = set()
-        yield PersistentInvoker(aggregate, delay=delay).invoke.defer()
+        yield PersistentInvoker(update, delay=delay).invoke.defer()
 
     def __load_checkpoint(self):
         records = self.monitor.get("checkpoint", limit=1)
