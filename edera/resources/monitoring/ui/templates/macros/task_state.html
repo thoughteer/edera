@@ -1,8 +1,13 @@
 {% macro task_state(alias, state, labeling) -%}
-    <div class='task-label{% if state.phony %} phony{% endif %}'>
+    <div class='task-label'>
         {{- "" -}}
         <a href='{{ url_for("report", alias=alias) }}'>{{ labeling[alias] }}</a>
-        {{- "" -}}
+        {%- if state.phony -%}
+        <span class='phony' title='This task does nothing and will not be executed'></span>
+        {%- endif -%}
+        {%- if state.stale -%}
+        <span class='stale' title='No agents are currently scheduling this task'></span>
+        {%- endif -%}
     </div>
     <div class='task-name'>{{ state.name }}</div>
     <div class='task-statuses'>
