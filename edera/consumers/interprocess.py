@@ -37,7 +37,7 @@ class InterProcessConsumer(object):
         """
         Run an infinite consumption loop.
 
-        Ignores all errors that occur in the handler, but logs them at the DEBUG level.
+        Ignores all errors that occur in the handler, but logs them at the INFO level.
         """
         element = Void
         while True:
@@ -50,7 +50,7 @@ class InterProcessConsumer(object):
             try:
                 yield deferrable(self.handler).defer(element)
             except Exception as error:
-                logging.getLogger(__name__).debug("Failed to handle %r: %s", element, error)
+                logging.getLogger(__name__).info("Failed to handle %r: %s", element, error)
                 yield edera.helpers.sleep.defer(self.backoff)
             else:
                 element = Void
