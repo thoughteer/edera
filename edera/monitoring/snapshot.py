@@ -88,8 +88,7 @@ class TaskState(Serializable):
         failures (Mapping[String, DateTime]) - names of failed agents (+ last timestamps)
         span (Optional[Tuple[DateTime, DateTime]]) - the start time and the finish time
                 of the first successful execution attempt
-        baggage (Any) - the baggage provided by the task via annotation
-            Should be serializable.
+        baggage (Mapping[String, String]) - the baggage provided by the task via annotation
     """
 
     name = StringField
@@ -208,7 +207,7 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
     Attributes:
         dependencies (Mapping[String, Set[String]]) - the dependencies grouped by task name
         phonies (Set[String]) - the names of "phony" tasks
-        baggages (Mapping[String, Any]) - the baggages by task name
+        baggages (Mapping[String, Mapping[String, String]]) - the baggages by task name
     """
 
     dependencies = MappingField(StringField, SetField(StringField))
@@ -220,7 +219,7 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
         Args:
             dependencies (Mapping[String, Set[String]]) - dependencies grouped by task name
             phonies (Set[String]) - names of "phony" tasks
-            baggages (Mapping[String, Any]) - baggages by task name
+            baggages (Mapping[String, Mapping[String, String]]) - baggages by task name
         """
         self.dependencies = dependencies
         self.phonies = phonies
@@ -242,7 +241,7 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
             state.stale = False
             if agent.name in state.runs:
                 del state.runs[agent.name]
-            state.baggage = self.baggages.get(task)
+            state.baggage = self.baggages.get(task, {})
             payload = snapshot.payloads[alias]
             if payload.dependencies is None:
                 payload.dependencies = {
