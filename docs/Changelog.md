@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.11.3
+
+* Fixed monitoring snapshot core timestamp updates
+
 ### 0.11.2
 
 * Added "stale" task detection during monitoring
