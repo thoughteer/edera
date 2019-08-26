@@ -159,7 +159,7 @@ class MonitorWatcher(object):
                     pending.add(alias)
                     continue
                 state.completed = True
-            snapshot.timestamp = edera.helpers.now()
+            snapshot.core.timestamp = edera.helpers.now()
 
         checkpoint, snapshot = yield self.recover.defer()
         affected = set()
