@@ -2,6 +2,7 @@ import abc
 
 import edera.helpers
 
+from edera.graph import Graph
 from edera.helpers import AbstractSerializable
 from edera.helpers import Serializable
 from edera.helpers.serializable import BooleanField
@@ -202,7 +203,7 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
     """
     An update that adds information on task dependencies and "phony" flags to the snapshot.
 
-    It also publishes all the baggages.
+    It also publishes all the baggages and detects stale tasks.
 
     Attributes:
         dependencies (Mapping[String, Set[String]]) - the dependencies grouped by task name
@@ -227,6 +228,8 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
 
     def apply(self, snapshot, agent):
         snapshot.add([task for task in self.dependencies if task not in snapshot])
+        topology = self.__extract_topology(snapshot)
+        active = {snapshot.core.aliases[task] for task in self.dependencies}
         for task in snapshot.core.aliases:
             alias = snapshot.core.aliases[task]
             state = snapshot.core.states[alias]
@@ -234,7 +237,11 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
                 if agent.name in state.agents:
                     state.agents.remove(agent.name)
                     if not state.agents and not state.completed:
-                        state.stale = True
+                        if self.__check_for_active_descendants(alias, topology, active):
+                            state.stale = False
+                            state.completed = True
+                        else:
+                            state.stale = True
                 continue
             state.phony = task in self.phonies
             state.agents.add(agent.name)
@@ -249,6 +256,24 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
                     for dependency in self.dependencies[task]
                 }
                 yield task
+
+    def __check_for_active_descendants(self, alias, topology, active):
+        children = topology[alias].children
+        return (
+            any(child in active for child in children)
+            or any(
+                self.__check_for_active_descendants(child, topology, active)
+                for child in children)
+        )
+
+    def __extract_topology(self, snapshot):
+        result = Graph()
+        for alias in snapshot.payloads:
+            result.add(alias)
+        for alias in result:
+            for dependency in (snapshot.payloads[alias].dependencies or ()):
+                result.link(dependency, alias)
+        return result
 
 
 class TaskStatusUpdate(MonitoringSnapshotUpdate):

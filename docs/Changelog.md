@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.11.4
+
+* Fixed stale task detection
+* Improved running/failure time formatting in the monitoring UI
+
 ### 0.11.3
 
 * Fixed monitoring snapshot core timestamp updates
