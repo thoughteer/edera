@@ -1,4 +1,4 @@
-{% macro task_state(alias, state, labeling) -%}
+{% macro task_state(core, alias, state, labeling) -%}
     <div class='task-label'>
         {{- "" -}}
         <a href='{{ url_for("report", alias=alias) }}'>{{ labeling[alias] }}</a>
@@ -15,10 +15,10 @@
             <div class='task-status completed'{% if state.span %} title='{{ state.span[0]|formatdatetime }} &mdash; {{ state.span[1]|formatdatetime }}'{% endif %}>completed{% if state.span %} in {{ (state.span[1] - state.span[0])|formattimedelta }}{% endif %}</div>
         {%- endif %}
         {%- if state.failures -%}
-            <div class='task-status failed'>failed at {{ state.failures.values()|max|formatdatetime }}</div>
+            <div class='task-status failed' title='at {{ state.failures.values()|max|formatdatetime }}'>failed {{ (core.timestamp - state.failures.values()|max)|formattimedelta }} ago</div>
         {%- endif -%}
         {%- if state.runs -%}
-            <div class='task-status running'>running since {{ state.runs.values()|min|formatdatetime }}</div>
+            <div class='task-status running' title='since {{ state.runs.values()|min|formatdatetime }}'>running for {{ (core.timestamp - state.runs.values()|min)|formattimedelta }}</div>
         {%- endif -%}
     </div>
 {%- endmacro %}

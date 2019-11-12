@@ -5,7 +5,7 @@
 {% block content -%}
     <div class='block'>
         {%- set state = core.states[alias] %}
-        <div class='block-head'>{{ task_state(alias, state, labeling) }}</div>
+        <div class='block-head'>{{ task_state(core, alias, state, labeling) }}</div>
         <div class='block-body'>
         {%- if state.failures -%}
             <div class='block-widget'>
