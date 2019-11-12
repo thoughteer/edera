@@ -149,6 +149,7 @@ class MonitoringUI(flask.Flask):
         return {
             alias: (
                 not state.failures,
+                not state.stale,
                 state.completed,
                 state.phony,
                 not state.runs,
