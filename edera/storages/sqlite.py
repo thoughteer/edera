@@ -85,7 +85,9 @@ class SQLiteStorage(Storage):
             raise StorageOperationError("failed to execute a query: %s" % error)
 
     def __create_connection(self):
-        result = sqlite3.connect(self.database, detect_types=True)
+        result = sqlite3.connect(self.database, timeout=30, detect_types=True)
+        with self.__use(result) as cursor:
+            cursor.execute("PRAGMA journal_mode=WAL")
         with self.__use(result) as cursor:
             cursor.execute(
                 "CREATE TABLE IF NOT EXISTS %s (key TEXT, version INTEGER PRIMARY KEY, value TEXT)"
@@ -98,9 +100,9 @@ class SQLiteStorage(Storage):
 
     @contextlib.contextmanager
     def __use(self, connection):
-        cursor = connection.cursor()
-        try:
-            yield cursor
-        finally:
-            cursor.close()
-        connection.commit()
+        with connection:
+            cursor = connection.cursor()
+            try:
+                yield cursor
+            finally:
+                cursor.close()
