@@ -30,4 +30,5 @@ class Locker(object):
 
         Raises:
             LockAcquisitionError if the lock has been already acquired
+            Exception if something went terribly wrong
         """
