@@ -3,12 +3,13 @@ import multiprocessing
 
 import edera.helpers
 
+from edera.consumer import Consumer
 from edera.exceptions import ConsumptionError
 from edera.routine import deferrable
 from edera.routine import routine
 
 
-class InterProcessConsumer(object):
+class InterProcessConsumer(Consumer):
     """
     An inter-process consumer that buffers elements in a queue.
 
