@@ -55,7 +55,7 @@ class ProcessWorker(Worker):
         assert self.__started
         try:
             os.kill(self.process.pid, signal.SIGKILL)
-        except OSError:
+        except OSError:  # pragma: no cover
             pass
         self.process.join()
 

@@ -61,7 +61,10 @@ class Date(Qualifier):
         if isinstance(value, six.string_types):
             if Date.PATTERN.match(value) is None:
                 raise ValueQualificationError(value, "not in ISO 8601 format")
-            value = iso8601.parse_date(value).date()
+            try:
+                value = iso8601.parse_date(value).date()
+            except iso8601.ParseError as error:
+                raise ValueQualificationError(value, str(error))
         if not isinstance(value, datetime.date) or isinstance(value, datetime.datetime):
             raise ValueQualificationError(value, "not a date")
         return (value, value.isoformat())
@@ -92,7 +95,7 @@ class DateTime(Qualifier):
                 raise ValueQualificationError(value, "not in ISO 8601 format")
             try:
                 value = iso8601.parse_date(value, default_timezone=None)
-            except ValueError as error:
+            except iso8601.ParseError as error:
                 raise ValueQualificationError(value, str(error))
         if not isinstance(value, datetime.datetime):
             raise ValueQualificationError(value, "not a date/time")

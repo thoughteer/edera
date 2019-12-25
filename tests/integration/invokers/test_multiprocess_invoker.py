@@ -4,6 +4,8 @@ import time
 
 import pytest
 
+from edera.exceptions import ExcusableError
+from edera.exceptions import ExcusableMasterSlaveInvocationError
 from edera.exceptions import MasterSlaveInvocationError
 from edera.invokers import MultiProcessInvoker
 from edera.routine import routine
@@ -22,6 +24,26 @@ def test_invoker_runs_actions_in_parallel():
     }
     MultiProcessInvoker(actions).invoke()
     assert {collection.get(timeout=3.0) for _ in range(3)} == {0, 1, 2}
+
+
+def test_invoker_notifies_about_stops():
+
+    def add_index(index):
+        if index % 2 == 0:
+            raise ExcusableError("index must be odd")
+        collection.put(index)
+
+    collection = multiprocessing.Queue()
+    actions = {
+        "A": lambda: add_index(3),
+        "B": lambda: add_index(2),
+        "C": lambda: add_index(1),
+        "D": lambda: add_index(0),
+    }
+    with pytest.raises(ExcusableMasterSlaveInvocationError) as info:
+        MultiProcessInvoker(actions).invoke()
+    assert len(info.value.stopped_slaves) == 2
+    assert {collection.get(timeout=3.0) for _ in range(2)} == {1, 3}
 
 
 def test_invoker_notifies_about_failures():

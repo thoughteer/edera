@@ -5,6 +5,7 @@ from edera import Task
 from edera.exceptions import LockAcquisitionError
 from edera.exceptions import LockRetentionError
 from edera.lockers import ProcessLocker
+from edera.requisites import shortcut
 from edera.workflow import WorkflowBuilder
 from edera.workflow.processors import TargetLocker
 
@@ -23,9 +24,16 @@ def test_target_locker_acquires_lock_first():
         def execute(self):
             raise RuntimeError
 
-    workflow = WorkflowBuilder().build(T())
+    class X(Task):
+
+        @shortcut
+        def requisite(self):
+            return T()
+
+    workflow = WorkflowBuilder().build(X())
     locker = ProcessLocker()
     TargetLocker(locker).process(workflow)
+    assert workflow[X()].item.target is None
     with locker.lock("C"):
         with pytest.raises(LockAcquisitionError):
             workflow[T()].item.execute()

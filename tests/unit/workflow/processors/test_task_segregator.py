@@ -1,4 +1,6 @@
+from edera import Condition
 from edera import Task
+from edera.helpers import Phony
 from edera.helpers import SimpleBox
 from edera.requisites import shortcut
 from edera.requisites import Annotate
@@ -13,7 +15,16 @@ def test_task_segregator_fills_box_correctly():
     COLOR = SimpleBox()
     DONE = set()
 
+    class F(Condition):
+
+        def check(self):
+            assert COLOR.get() == "1"
+            DONE.add(self)
+            return False
+
     class A(Task):
+
+        target = F()
 
         @property
         def requisite(self):
@@ -55,9 +66,16 @@ def test_task_segregator_fills_box_correctly():
             assert COLOR.get() is None
             DONE.add(self)
 
-    workflow = WorkflowBuilder().build(X())
+    class Y(Task):
+
+        @shortcut
+        def requisite(self):
+            return X()
+
+    workflow = WorkflowBuilder().build(Y())
     TaskRanker().process(workflow)
     TaskSegregator(COLOR).process(workflow)
+    assert workflow[Y()].item.execute is Phony
     BasicWorkflowExecutor().execute(workflow)
     assert COLOR.get() is None
-    assert DONE == {A(), B(), C(), X()}
+    assert DONE == {F(), A(), B(), C(), X()}

@@ -123,7 +123,7 @@ class WorkflowNormalizer(WorkflowProcessor):
             if target not in leafs and not solution[alpha[target][1]]
         }
         corrections = _get_target_corrections(targets, ccts, dcts)
-        if ccts or dcts:
+        if ccts or dcts:  # pragma: no cover
             raise WorkflowNormalizationError(
                 "some target corrections are not feasible: " + edera.helpers.render(ccts | dcts))
         logging.getLogger(__name__).debug(

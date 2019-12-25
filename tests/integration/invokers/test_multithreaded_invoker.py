@@ -4,6 +4,8 @@ import time
 
 import pytest
 
+from edera.exceptions import ExcusableError
+from edera.exceptions import ExcusableMasterSlaveInvocationError
 from edera.exceptions import MasterSlaveInvocationError
 from edera.invokers import MultiThreadedInvoker
 from edera.routine import routine
@@ -22,6 +24,26 @@ def test_invoker_runs_actions_in_parallel():
     }
     MultiThreadedInvoker(actions).invoke()
     assert collection == {0, 1, 2}
+
+
+def test_invoker_notifies_about_stops():
+
+    def add_index(index):
+        if index % 2 == 0:
+            raise ExcusableError("index must be odd")
+        collection.add(index)
+
+    collection = set()
+    actions = {
+        "A": lambda: add_index(3),
+        "B": lambda: add_index(2),
+        "C": lambda: add_index(1),
+        "D": lambda: add_index(0),
+    }
+    with pytest.raises(ExcusableMasterSlaveInvocationError) as info:
+        MultiThreadedInvoker(actions).invoke()
+    assert len(list(info.value.stopped_slaves)) == 2
+    assert collection == {1, 3}
 
 
 def test_invoker_notifies_about_failures():

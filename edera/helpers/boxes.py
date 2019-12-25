@@ -73,7 +73,7 @@ class SharedBox(Box):
         while True:
             try:
                 value = self.__queue.get(timeout=1)
-            except:
+            except:  # pragma: no cover
                 yield
             else:
                 yield value

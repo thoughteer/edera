@@ -6,6 +6,19 @@ import time
 import pytest
 
 from edera.exceptions import LockAcquisitionError
+from edera.lockers import DirectoryLocker
+
+
+def test_lock_acquisition_fails_if_path_points_to_file(tmpdir):
+    tmpdir.join("file").write("")
+    with pytest.raises(Exception):
+        with DirectoryLocker(str(tmpdir.join("file"))).lock("key"):
+            pass
+
+
+def test_locker_ignores_missing_key_file_on_release(tmpdir):
+    with DirectoryLocker(str(tmpdir)).lock("key"):
+        tmpdir.remove()
 
 
 def test_sigkill_releases_locks(directory_locker):

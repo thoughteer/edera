@@ -55,12 +55,12 @@ class MonitoringUI(flask.Flask):
     def __configure(self):
 
         @self.template_filter("formatdatetime")
-        def format_datetime(dt):
+        def format_datetime(dt):  # pylint: disable=unused-variable
             offset = datetime.datetime.now() - datetime.datetime.utcnow()
             return (dt + offset).strftime("%Y-%m-%d %H:%M:%S")
 
         @self.template_filter("formattimedelta")
-        def format_timedelta(td):
+        def format_timedelta(td):  # pylint: disable=unused-variable
 
             def decompose(seconds):
                 if seconds >= 86400:
@@ -90,20 +90,20 @@ class MonitoringUI(flask.Flask):
             return " ".join(decompose(td.total_seconds()))
 
         @self.template_filter("hashstring")
-        def hash_string(string):
+        def hash_string(string):  # pylint: disable=unused-variable
             return edera.helpers.sha1(string)[:6]
 
         @self.template_filter("selectkeys")
-        def select_keys(mapping, keys):
+        def select_keys(mapping, keys):  # pylint: disable=unused-variable
             return {key: mapping[key] for key in keys}
 
         @self.template_filter("highlight")
-        def highlight(message):
+        def highlight(message):  # pylint: disable=unused-variable
             link = "<a href='\g<0>'>\g<0></a>"
             return jinja2.Markup(re.sub(URL_PATTERN, link, str(jinja2.escape(message))))
 
         @self.route("/")
-        def index():
+        def index():  # pylint: disable=unused-variable
             core = self.watcher.load_snapshot_core()
             if core is None:
                 return flask.render_template("void.html", caption=self.caption)
@@ -118,7 +118,7 @@ class MonitoringUI(flask.Flask):
                 mode=flask.request.args.get("mode", "short"))
 
         @self.route("/report/<alias>")
-        def report(alias):
+        def report(alias):  # pylint: disable=unused-variable
             core = self.watcher.load_snapshot_core()
             if core is None or alias not in core.states:
                 flask.abort(404)

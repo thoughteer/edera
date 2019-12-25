@@ -2,6 +2,8 @@ import pytest
 
 from edera import Condition
 from edera import Task
+from edera.helpers import Phony
+from edera.requisites import shortcut
 from edera.workflow import WorkflowBuilder
 from edera.workflow.processors import TargetPreChecker
 
@@ -20,8 +22,15 @@ def test_target_prechecker_executes_task_if_necessary():
         def execute(self):
             raise RuntimeError
 
-    workflow = WorkflowBuilder().build(T())
+    class X(Task):
+
+        @shortcut
+        def requisite(self):
+            return T()
+
+    workflow = WorkflowBuilder().build(X())
     TargetPreChecker().process(workflow)
+    assert workflow[X()].item.execute is Phony
     with pytest.raises(RuntimeError):
         workflow[T()].item.execute()
 

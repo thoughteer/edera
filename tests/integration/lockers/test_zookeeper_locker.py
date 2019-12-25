@@ -1,6 +1,18 @@
 import threading
 import time
 
+import pytest
+
+from edera.exceptions import LockAcquisitionError
+
+
+def test_lock_acquisition_fails_if_zookeeper_is_down(zookeeper, zookeeper_locker):
+    zookeeper.stop()
+    with pytest.raises(LockAcquisitionError):
+        with zookeeper_locker.lock("key"):
+            pass
+    zookeeper.start()
+
 
 def test_lock_can_be_autoreleased_when_session_expires(zookeeper, zookeeper_locker):
 
