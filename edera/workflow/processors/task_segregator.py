@@ -36,8 +36,8 @@ class TaskSegregator(WorkflowProcessor):
 
     def process(self, workflow):
         for task in workflow:
-            if task is Phony:
-                pass
+            if task.execute is Phony:
+                continue
             color = workflow[task].annotation.get("color")
             workflow.replace(SegregatingTaskWrapper(task, color, self.__box))
 

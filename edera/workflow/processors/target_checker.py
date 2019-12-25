@@ -1,7 +1,6 @@
-from edera.helpers import Phony
 from edera.workflow.processor import WorkflowProcessor
-from edera.workflow.processors.target_postchecker import TargetPostCheckingTaskWrapper
-from edera.workflow.processors.target_prechecker import TargetPreCheckingTaskWrapper
+from edera.workflow.processors.target_postchecker import TargetPostChecker
+from edera.workflow.processors.target_prechecker import TargetPreChecker
 
 
 class TargetChecker(WorkflowProcessor):
@@ -17,7 +16,5 @@ class TargetChecker(WorkflowProcessor):
     """
 
     def process(self, workflow):
-        for task in workflow:
-            if task.execute is Phony:
-                continue
-            workflow.replace(TargetPreCheckingTaskWrapper(TargetPostCheckingTaskWrapper(task)))
+        TargetPostChecker().process(workflow)
+        TargetPreChecker().process(workflow)

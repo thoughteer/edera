@@ -20,7 +20,6 @@ from edera.demo.daemon.beans import monitor
 from edera.monitoring import MonitorWatcher
 from edera.parameterizable import Parameter
 from edera.parameterizable import Parameterizable
-from edera.qualifiers import DateTime
 from edera.qualifiers import DiscreteDateTime
 from edera.requisites import Annotate
 from edera.requisites import shortcut

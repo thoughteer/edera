@@ -8,7 +8,6 @@ import edera.helpers
 from edera.condition import ConditionWrapper
 from edera.exceptions import ConsumptionError
 from edera.exceptions import ExcusableError
-from edera.exceptions import StorageOperationError
 from edera.helpers import CurrentException
 from edera.helpers import Phony
 from edera.monitoring.snapshot import MonitoringSnapshotUpdate

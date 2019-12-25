@@ -9,8 +9,6 @@ import six
 
 import edera.helpers
 
-from edera.monitoring.watcher import MonitorWatcher
-
 
 URL_PATTERN = "https?://[^\\s]*"
 
