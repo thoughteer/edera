@@ -19,7 +19,7 @@ class DaemonAutoTester(object):
 
     Attributes:
         box (Box) - the box that will keep the current test group color
-        cache (Storage) - the storage used to mark passed tests
+        registry (Storage) - the storage used to mark passed tests
         selector (TestSelector)
         timestamps (Iterable[DateTime]) - the set of timestamps used for seeding
     """
@@ -29,7 +29,7 @@ class DaemonAutoTester(object):
         pass
 
     @abc.abstractproperty
-    def cache(self):
+    def registry(self):
         pass
 
     def seed(self, seeder):
@@ -70,7 +70,7 @@ class DaemonAutoTester(object):
             $TaskSegregator
             $WorkflowTestifier
         """
-        WorkflowTestifier(self.cache, selector=self.selector).process(workflow)
+        WorkflowTestifier(self.registry, selector=self.selector).process(workflow)
         TaskSegregator(self.box).process(workflow)
 
     @property

@@ -13,10 +13,10 @@ class InterProcessConsumer(Consumer):
     """
     An inter-process consumer that buffers elements in a queue.
 
-    In order to start handling buffered elements you need to call $consume.
+    In order to start handling buffered elements you need to call $run.
 
     Attributes:
-        handler (Callable[[Any], Any]) - the handler called on every push
+        handler (Callable[[Any], Any]) - the handler called for every element
         capacity (Integer) - the limit on the number of pending elements in the queue
         backoff (TimeDelta) - the delay after each handling failure
     """
@@ -24,7 +24,7 @@ class InterProcessConsumer(Consumer):
     def __init__(self, handler, capacity, backoff):
         """
         Args:
-            handler (Callable[[Any], Any]) - a handler to call on every push
+            handler (Callable[[Any], Any]) - a handler to call for every element
             capacity (Integer) - a limit on the number of pending elements in the queue
             backoff (TimeDelta) - a delay after each handling failure
         """
@@ -33,8 +33,14 @@ class InterProcessConsumer(Consumer):
         self.backoff = backoff
         self.__fifo = multiprocessing.Queue(capacity)
 
+    def consume(self, element):
+        try:
+            self.__fifo.put(element, False)
+        except Exception:
+            raise ConsumptionError("FIFO is full")
+
     @routine
-    def consume(self):
+    def run(self):
         """
         Run an infinite consumption loop.
 
@@ -56,12 +62,6 @@ class InterProcessConsumer(Consumer):
             else:
                 element = Void
                 yield
-
-    def push(self, element):
-        try:
-            self.__fifo.put(element, False)
-        except Exception:
-            raise ConsumptionError("FIFO is full")
 
 
 class Void(object):

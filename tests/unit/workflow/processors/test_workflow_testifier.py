@@ -55,9 +55,9 @@ def test_workflow_testifier_notifies_about_overstubbing():
             return {B(): DefaultScenario()}  # not in the $dependencies
 
     workflow = WorkflowBuilder().build(B())
-    cache = InMemoryStorage()
+    registry = InMemoryStorage()
     with pytest.raises(WorkflowTestificationError):
-        WorkflowTestifier(cache).process(workflow)
+        WorkflowTestifier(registry).process(workflow)
 
 
 def test_workflow_testifier_notifies_about_scenario_conflicts():
@@ -98,9 +98,9 @@ def test_workflow_testifier_notifies_about_scenario_conflicts():
         pass
 
     workflow = WorkflowBuilder().build(C())
-    cache = InMemoryStorage()
+    registry = InMemoryStorage()
     with pytest.raises(WorkflowTestificationError):
-        WorkflowTestifier(cache).process(workflow)
+        WorkflowTestifier(registry).process(workflow)
 
 
 def test_workflow_testifier_colorizes_tasks_accordingly():
@@ -151,8 +151,8 @@ def test_workflow_testifier_colorizes_tasks_accordingly():
         pass
 
     workflow = WorkflowBuilder().build(E())
-    cache = InMemoryStorage()
-    WorkflowTestifier(cache).process(workflow)
+    registry = InMemoryStorage()
+    WorkflowTestifier(registry).process(workflow)
     assert len(workflow) == 6
 
 
@@ -214,8 +214,8 @@ def test_workflow_testifier_works_correctly():
             return {C(): DefaultScenario()}
 
     workflow = WorkflowBuilder().build(E())
-    cache = InMemoryStorage()
-    WorkflowTestifier(cache).process(workflow)
+    registry = InMemoryStorage()
+    WorkflowTestifier(registry).process(workflow)
     assert len(workflow) == 8
     assert sum(len(workflow[task].parents) for task in workflow) == 6
     assert len(set(workflow[task]["color"] for task in workflow)) == 2

@@ -370,8 +370,8 @@ class DemoSupport(DaemonModule):
 
 class DemoDaemonAutoTester(DaemonAutoTester):
 
-    cache = cache
     box = colorbox
+    registry = cache
 
 
 class DemoDaemon(Daemon):

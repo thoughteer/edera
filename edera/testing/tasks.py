@@ -31,7 +31,7 @@ class TestableTask(Task):
 
     @property
     def requisite(self):
-        return Annotate("tests", self.tests)
+        return Annotate("tests", set(self.tests))
 
     @property
     def tests(self):
@@ -43,26 +43,24 @@ class Test(Parameterizable, Task):
     """
     An abstract class for testing tasks used to check the correctness of a subject task.
 
-    Runs the $scenario for the $subject and registers itself in the $cache if no errors
+    Runs the $scenario for the $subject and registers itself in the $registry if no errors
     occurred (meaning, the test has passed).
 
     Attributes:
-        cache (Storage) - the storage used to store passed tests
+        registry (Storage) - the storage used to store passed tests
     """
 
     scenario = Parameter(Instance[Scenario])
     subject = Parameter(Instance[Task])
 
     @abc.abstractproperty
-    def cache(self):
+    def registry(self):
         pass
 
     @routine
     def execute(self):
         yield deferrable(self.scenario.run).defer(self.subject)
-        if self.cache.get(self.name, limit=1):
-            return
-        self.cache.put(self.name, "!")
+        self.registry.put(self.name, "!")
 
     @property
     def target(self):
@@ -74,7 +72,7 @@ class TestPassed(Parameterizable, Condition):
     test = Parameter(Instance[Test])
 
     def check(self):
-        return bool(self.test.cache.get(self.test.name, limit=1))
+        return bool(self.test.registry.get(self.test.name, limit=1))
 
     @property
     def invariants(self):

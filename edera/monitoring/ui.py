@@ -65,24 +65,15 @@ class MonitoringUI(flask.Flask):
             def decompose(seconds):
                 if seconds >= 86400:
                     days = int(seconds / 86400)
-                    if days == 1:
-                        yield "1 day"
-                    else:
-                        yield "%d days" % days
+                    yield "1 day" if days == 1 else "%d days" % days
                     seconds -= days * 86400
                 if seconds >= 3600:
                     hours = int(seconds / 3600)
-                    if hours == 1:
-                        yield "1 hour"
-                    else:
-                        yield "%d hours" % hours
+                    yield "1 hour" if hours == 1 else "%d hours" % hours
                     seconds -= hours * 3600
                 if seconds >= 60:
                     minutes = int(seconds / 60)
-                    if minutes == 1:
-                        yield "1 minute"
-                    else:
-                        yield "%d minutes" % minutes
+                    yield "1 minute" if minutes == 1 else "%d minutes" % minutes
                     seconds -= minutes * 60
                 if seconds != 0:
                     yield "%.3f seconds" % seconds

@@ -27,7 +27,7 @@ class MonitoringAgent(Nameable):
     Agents are used to push updates into a storage during workflow execution.
     They are also used to retrieve updates from the storage.
 
-    Agents (unless they are read-only) use a consumer to push updates.
+    Agents (unless they are passive) use a consumer to push updates.
     This allows features like buffering to be implemented naturally.
 
     Default agents:
@@ -37,7 +37,7 @@ class MonitoringAgent(Nameable):
       - collect logs during task execution
 
     Attributes:
-        readonly (Boolean) - True iff the agent does not have a consumer to push through
+        passive (Boolean) - True iff the agent does not have a consumer to push through
 
     See also:
         $MonitoringWorkflowExecutor
@@ -62,7 +62,7 @@ class MonitoringAgent(Nameable):
         """
         Get the set of all agents registered in the monitor.
 
-        All discovered agents are read-only.
+        All discovered agents are passive.
 
         Args:
             monitor (Storage) - a storage to search for agents
@@ -110,8 +110,9 @@ class MonitoringAgent(Nameable):
         }
         phonies = {task.name for task in workflow if task.execute is Phony}
         baggages = {
-            task.name: workflow[task].annotation.get("baggage", {})
+            task.name: workflow[task].annotation["baggage"]
             for task in workflow
+            if "baggage" in workflow[task].annotation
         }
         self.push(WorkflowUpdate(dependencies, phonies, baggages))
         result = workflow.clone()
@@ -127,9 +128,16 @@ class MonitoringAgent(Nameable):
     def name(self):
         return self.__name
 
+    @property
+    def passive(self):
+        return self.__consumer is None
+
     def pull(self, since=None):
         """
         Get updates from the monitor pushed there by this agent.
+
+        Updates are sorted by the version.
+        Latest updates go first.
 
         Args:
             since (Optional[Integer]) - a version to start from (including)
@@ -154,27 +162,23 @@ class MonitoringAgent(Nameable):
             update (MonitoringSnapshotUpdate) - an update to push
 
         Raises:
-            AssertionError if the agent is read-only
+            AssertionError if the agent is passive
         """
         self.__push(self.__key, update.serialize())
-
-    @property
-    def readonly(self):
-        return self.__consumer is None
 
     def register(self):
         """
         Register the agent in the monitor.
 
         Raises:
-            AssertionError if the agent is read-only
+            AssertionError if the agent is passive
         """
         self.__push("agent", self.name)
 
     def __push(self, key, value):
-        assert not self.readonly
+        assert not self.passive
         try:
-            self.__consumer.push((key, value))
+            self.__consumer.consume((key, value))
         except ConsumptionError:
             logging.getLogger(__name__).warning("Consumer rejected a monitoring record")
 
@@ -218,7 +222,7 @@ class StatusReportingTaskWrapper(TaskWrapper):
             error.reraise()
         except Exception:
             error = CurrentException()
-            self.__save_traceback()
+            self.__report_traceback()
             self.__report_status("failed")
             error.reraise()
         else:
@@ -233,7 +237,7 @@ class StatusReportingTaskWrapper(TaskWrapper):
     def __report_status(self, status):
         self.__agent.push(TaskStatusUpdate(self.name, status, edera.helpers.now()))
 
-    def __save_traceback(self):
+    def __report_traceback(self):
         self.__agent.push(TaskLogUpdate(self.name, _format_traceback(), edera.helpers.now()))
 
 
@@ -264,7 +268,7 @@ class StatusReportingConditionWrapper(ConditionWrapper):
             raise
         except Exception:
             error = CurrentException()
-            self.__save_traceback()
+            self.__report_traceback()
             self.__report_status("failed")
             error.reraise()
         if result:
@@ -274,7 +278,7 @@ class StatusReportingConditionWrapper(ConditionWrapper):
     def __report_status(self, status):
         self.__agent.push(TaskStatusUpdate(self.__task.name, status, edera.helpers.now()))
 
-    def __save_traceback(self):
+    def __report_traceback(self):
         self.__agent.push(TaskLogUpdate(self.__task.name, _format_traceback(), edera.helpers.now()))
 
 
@@ -285,6 +289,8 @@ class LogCapturingTaskWrapper(TaskWrapper):
     See also:
         $TaskLogUpdate
     """
+
+    SINK = "edera.monitoring.sink"
 
     class LogCapturingHandler(logging.Handler):
 
@@ -312,7 +318,7 @@ class LogCapturingTaskWrapper(TaskWrapper):
 
     @routine
     def execute(self):
-        sink = logging.getLogger("edera.monitoring.sink")
+        sink = logging.getLogger(self.SINK)
         handler = self.LogCapturingHandler(threading.current_thread(), self.name, self.__agent)
         sink.addHandler(handler)
         try:

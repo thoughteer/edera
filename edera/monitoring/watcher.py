@@ -71,6 +71,10 @@ class MonitorWatcher(object):
 
         Returns:
             Tuple[MonitorWatcherCheckpoint, MonitoringSnapshot]
+
+        Raises:
+            MonitorInconsistencyError if some data is missing from the storage
+            StorageOperationError if something went wrong with the storage
         """
         checkpoint = self.__load_checkpoint()
         if checkpoint is None:
@@ -100,6 +104,10 @@ class MonitorWatcher(object):
         Args:
             delay (TimeDelta) - a delay between aggregations
                 Default is 3 seconds.
+
+        Raises:
+            MonitorInconsistencyError if some data is missing from the storage
+            StorageOperationError if something went wrong with the storage
         """
 
         @routine
@@ -116,7 +124,7 @@ class MonitorWatcher(object):
                 yield
                 cursor = checkpoint.cursors.get(agent.name)
                 for version, update in reversed(agent.pull(since=cursor)):
-                    for task in update.apply(snapshot, agent):
+                    for task in update.apply(snapshot, agent.name):
                         affected.add(snapshot.core.aliases[task])
                     checkpoint.cursors[agent.name] = version + 1
             augment()
@@ -127,15 +135,15 @@ class MonitorWatcher(object):
                 payload = snapshot.payloads[alias]
                 new_payload_version = self.monitor.put("payload/" + alias, payload.serialize())
                 affected.remove(alias)
-                commited.add(alias)
+                committed.add(alias)
                 checkpoint.payload_versions[alias] = new_payload_version
             new_checkpoint_version = self.monitor.put("checkpoint", checkpoint.serialize())
             self.monitor.delete("checkpoint", till=new_checkpoint_version)
             self.monitor.delete("core", till=checkpoint.core_version)
-            for alias in set(commited):
+            for alias in set(committed):
                 yield
                 self.monitor.delete("payload/" + alias, till=checkpoint.payload_versions[alias])
-                commited.remove(alias)
+                committed.remove(alias)
             for agent in agents:
                 if agent.name not in checkpoint.cursors:
                     continue
@@ -163,7 +171,7 @@ class MonitorWatcher(object):
 
         checkpoint, snapshot = yield self.recover.defer()
         affected = set()
-        commited = set()
+        committed = set()
         yield PersistentInvoker(update, delay=delay).invoke.defer()
 
     def __load_checkpoint(self):

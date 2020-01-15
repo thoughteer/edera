@@ -220,7 +220,7 @@ class Daemon(object):
 
         @routine
         def run_consumer():
-            yield self.__consumer.consume.defer()
+            yield self.__consumer.run.defer()
 
         @routine
         def run_support():

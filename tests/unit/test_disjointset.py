@@ -9,7 +9,7 @@ def test_all_subsets_are_initially_disjoint():
 
 
 def test_disjointset_merges_and_finds_subsets_correctly():
-    disjointset = DisjointSet(5)
+    disjointset = DisjointSet(6)
     disjointset.merge(0, 1)
     assert disjointset.find(0) == disjointset.find(1)
     assert disjointset.find(0) != disjointset.find(2)
@@ -18,7 +18,8 @@ def test_disjointset_merges_and_finds_subsets_correctly():
     assert disjointset.find(1) == disjointset.find(2)
     assert disjointset.find(1) != disjointset.find(4)
     disjointset.merge(3, 4)
-    assert len(set(disjointset.find(index) for index in range(5))) == 1
+    disjointset.merge(5, 4)
+    assert len(set(disjointset.find(index) for index in range(6))) == 1
 
 
 def test_disjointset_fails_to_find_subset_by_invalid_element():

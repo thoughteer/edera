@@ -10,18 +10,18 @@ from edera.invokers import MultiProcessInvoker
 
 def test_consumer_limits_its_capacity():
     consumer = InterProcessConsumer(lambda element: None, 3, datetime.timedelta(seconds=0))
-    consumer.push(1)
-    consumer.push(2)
-    consumer.push(3)
+    consumer.consume(1)
+    consumer.consume(2)
+    consumer.consume(3)
     with pytest.raises(ConsumptionError):
-        consumer.push(0)
+        consumer.consume(0)
 
 
 def test_consumer_handles_elements_correctly():
 
-    def push():
+    def consume():
         for element in range(1, 4):
-            consumer.push(element)
+            consumer.consume(element)
 
     def handle(element):
         result.put(element)
@@ -32,7 +32,7 @@ def test_consumer_handles_elements_correctly():
 
     consumer = InterProcessConsumer(handle, 3, datetime.timedelta(seconds=0.1))
     result = multiprocessing.Queue()
-    invoker = MultiProcessInvoker({"p": push, "c": consumer.consume})
+    invoker = MultiProcessInvoker({"c": consume, "r": consumer.run})
     start_time = datetime.datetime.utcnow()
     try:
         invoker.invoke[interrupt]()
@@ -43,9 +43,9 @@ def test_consumer_handles_elements_correctly():
 
 def test_consumer_handles_errors_silently():
 
-    def push():
+    def consume():
         for element in range(1, 4):
-            consumer.push(element)
+            consumer.consume(element)
 
     def handle(element):
         result.put(element)
@@ -57,7 +57,7 @@ def test_consumer_handles_errors_silently():
 
     consumer = InterProcessConsumer(handle, 3, datetime.timedelta(seconds=0.1))
     result = multiprocessing.Queue()
-    invoker = MultiProcessInvoker({"p": push, "c": consumer.consume})
+    invoker = MultiProcessInvoker({"c": consume, "r": consumer.run})
     start_time = datetime.datetime.utcnow()
     try:
         invoker.invoke[interrupt]()
