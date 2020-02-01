@@ -190,7 +190,7 @@ class Timer(object):
         duration (TimeDelta)
     """
 
-    class Timeout(Exception):
+    class Timeout(BaseException):
         pass
 
     def __call__(self):
