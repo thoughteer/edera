@@ -95,7 +95,7 @@ class DateTime(Qualifier):
                 raise ValueQualificationError(value, "not in ISO 8601 format")
             try:
                 value = iso8601.parse_date(value, default_timezone=None)
-            except iso8601.ParseError as error:
+            except (iso8601.ParseError, ValueError) as error:
                 raise ValueQualificationError(value, str(error))
         if not isinstance(value, datetime.datetime):
             raise ValueQualificationError(value, "not a date/time")
