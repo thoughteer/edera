@@ -3,7 +3,6 @@ import pytest
 from edera import Condition
 from edera import Task
 from edera.exceptions import TargetVerificationError
-from edera.helpers import Phony
 from edera.requisites import shortcut
 from edera.workflow import WorkflowBuilder
 from edera.workflow.processors import TargetPostChecker
@@ -31,7 +30,7 @@ def test_target_postchecker_always_executes_task():
 
     workflow = WorkflowBuilder().build(X())
     TargetPostChecker().process(workflow)
-    assert workflow[X()].item.execute is Phony
+    assert workflow[X()].item.phony
     workflow[T()].item.execute()
 
 

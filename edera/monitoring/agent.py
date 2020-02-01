@@ -9,7 +9,6 @@ from edera.condition import ConditionWrapper
 from edera.exceptions import ConsumptionError
 from edera.exceptions import ExcusableError
 from edera.helpers import CurrentException
-from edera.helpers import Phony
 from edera.monitoring.snapshot import MonitoringSnapshotUpdate
 from edera.monitoring.snapshot import TaskLogUpdate
 from edera.monitoring.snapshot import TaskStatusUpdate
@@ -108,7 +107,7 @@ class MonitoringAgent(Nameable):
             task.name: {parent.name for parent in workflow[task].parents}
             for task in workflow
         }
-        phonies = {task.name for task in workflow if task.execute is Phony}
+        phonies = {task.name for task in workflow if task.phony}
         baggages = {
             task.name: workflow[task].annotation["baggage"]
             for task in workflow
@@ -117,7 +116,7 @@ class MonitoringAgent(Nameable):
         self.push(WorkflowUpdate(dependencies, phonies, baggages))
         result = workflow.clone()
         for task in result:
-            if task.execute is Phony:
+            if task.phony:
                 continue
             task = StatusReportingTaskWrapper(task, self)
             task = LogCapturingTaskWrapper(task, self)

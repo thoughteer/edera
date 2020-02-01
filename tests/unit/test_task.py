@@ -7,6 +7,7 @@ def test_default_task_is_non_abstract():
     task = Task()
     assert task.execute is Phony
     assert task.name == "Task"
+    assert task.phony
     assert task.requisite is None
     assert task.target is None
     assert task.unwrap() is task
@@ -17,6 +18,7 @@ def test_task_wrapper_behaves_as_expected():
     wrapper = TaskWrapper(task)
     assert wrapper.execute is Phony
     assert wrapper.name == "Task"
+    assert wrapper.phony
     assert wrapper.requisite is None
     assert wrapper.target is None
     assert wrapper.unwrap() is task

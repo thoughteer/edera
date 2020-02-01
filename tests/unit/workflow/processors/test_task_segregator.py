@@ -1,6 +1,5 @@
 from edera import Condition
 from edera import Task
-from edera.helpers import Phony
 from edera.helpers import SimpleBox
 from edera.requisites import shortcut
 from edera.requisites import Annotate
@@ -75,7 +74,7 @@ def test_task_segregator_fills_box_correctly():
     workflow = WorkflowBuilder().build(Y())
     TaskRanker().process(workflow)
     TaskSegregator(COLOR).process(workflow)
-    assert workflow[Y()].item.execute is Phony
+    assert workflow[Y()].item.phony
     BasicWorkflowExecutor().execute(workflow)
     assert COLOR.get() is None
     assert DONE == {F(), A(), B(), C(), X()}

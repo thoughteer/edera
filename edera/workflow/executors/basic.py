@@ -3,7 +3,6 @@ import logging
 from edera.exceptions import ExcusableError
 from edera.exceptions import ExcusableWorkflowExecutionError
 from edera.exceptions import WorkflowExecutionError
-from edera.helpers import Phony
 from edera.queue import Queue
 from edera.routine import deferrable
 from edera.routine import routine
@@ -30,7 +29,7 @@ class BasicWorkflowExecutor(WorkflowExecutor):
         failed_tasks = []
         while queue:
             task = queue.pick()
-            if task.execute is Phony:
+            if task.phony:
                 queue.accept()
                 continue
             try:

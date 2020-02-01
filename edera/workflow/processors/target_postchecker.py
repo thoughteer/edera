@@ -1,7 +1,6 @@
 import logging
 
 from edera.exceptions import TargetVerificationError
-from edera.helpers import Phony
 from edera.routine import deferrable
 from edera.routine import routine
 from edera.task import TaskWrapper
@@ -22,7 +21,7 @@ class TargetPostChecker(WorkflowProcessor):
 
     def process(self, workflow):
         for task in workflow:
-            if task.execute is Phony:
+            if task.phony:
                 continue
             workflow.replace(TargetPostCheckingTaskWrapper(task))
 

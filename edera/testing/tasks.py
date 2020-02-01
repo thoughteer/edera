@@ -1,7 +1,6 @@
 import abc
 
 from edera.condition import Condition
-from edera.helpers import Phony
 from edera.parameterizable import Parameter
 from edera.parameterizable import Parameterizable
 from edera.qualifiers import Instance
@@ -35,7 +34,7 @@ class TestableTask(Task):
 
     @property
     def tests(self):
-        if self.execute is not Phony:
+        if not self.phony:
             yield DefaultScenario()
 
 
