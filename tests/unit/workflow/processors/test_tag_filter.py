@@ -11,7 +11,6 @@ def test_tag_filter_works_correctly():
 
         @shortcut
         def requisite(self):
-            yield Annotate("tag", "X")
             yield {C(): self}
 
     class B(Task):
@@ -39,5 +38,8 @@ def test_tag_filter_works_correctly():
     assert set(workflow) == {A(), B(), E()}
     assert workflow[B()].parents == {A()}
     assert workflow[E()].parents == {B()}
+    TagFilter(None).process(workflow)
+    assert set(workflow) == {A(), B()}
+    assert workflow[B()].parents == {A()}
     TagFilter("Z").process(workflow)
     assert len(workflow) == 0
