@@ -4,8 +4,8 @@ set -ev
 
 if [ "$GROUP" == 'integration' ];
 then
-    docker run -d -p 27017:27017 --name edera-mongo mongo
-    docker run -d -p 2181:2181 --name edera-zookeeper zookeeper
+    docker run --rm -d -p 27017:27017 --name edera-mongo mongo
+    docker run --rm -d -p 2181:2181 --name edera-zookeeper zookeeper
 fi
 
 if [ "$GROUP" == 'performance' ];
