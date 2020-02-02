@@ -139,16 +139,20 @@ class MonitorWatcher(object):
                 checkpoint.payload_versions[alias] = new_payload_version
             new_checkpoint_version = self.monitor.put("checkpoint", checkpoint.serialize())
             self.monitor.delete("checkpoint", till=new_checkpoint_version)
-            self.monitor.delete("core", till=checkpoint.core_version)
+            self.monitor.delete("core", till=last_stable_checkpoint.core_version)
             for alias in set(committed):
                 yield
-                self.monitor.delete("payload/" + alias, till=checkpoint.payload_versions[alias])
+                if alias not in last_stable_checkpoint.payload_versions:
+                    continue
+                self.monitor.delete(
+                    "payload/" + alias, till=last_stable_checkpoint.payload_versions[alias])
                 committed.remove(alias)
             for agent in agents:
-                if agent.name not in checkpoint.cursors:
+                if agent.name not in last_stable_checkpoint.cursors:
                     continue
                 yield
-                agent.drop(till=checkpoint.cursors[agent.name])
+                agent.drop(till=last_stable_checkpoint.cursors[agent.name])
+            last_stable_checkpoint.update(checkpoint)
 
         def augment():
             graph = Graph()
@@ -170,6 +174,7 @@ class MonitorWatcher(object):
             snapshot.core.timestamp = edera.helpers.now()
 
         checkpoint, snapshot = yield self.recover.defer()
+        last_stable_checkpoint = checkpoint.clone()
         affected = set()
         committed = set()
         yield PersistentInvoker(update, delay=delay).invoke.defer()
@@ -218,3 +223,26 @@ class MonitorWatcherCheckpoint(Serializable):
         self.cursors = cursors
         self.core_version = core_version
         self.payload_versions = payload_versions
+
+    def clone(self):
+        """
+        Create a deep copy of the checkpoint.
+
+        Returns:
+            MonitorWatcherCheckpoint
+        """
+        return MonitorWatcherCheckpoint(
+            dict(self.cursors), self.core_version, dict(self.payload_versions))
+
+    def update(self, checkpoint):
+        """
+        Borrow data from another checkpoint.
+
+        No data is deep-copied.
+
+        Args:
+            checkpoint (MonitorWatcherCheckpoint) - a checkpoint to borrow data from
+        """
+        self.cursors = checkpoint.cursors
+        self.core_version = checkpoint.core_version
+        self.payload_versions = checkpoint.payload_versions

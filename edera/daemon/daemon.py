@@ -20,6 +20,7 @@ from edera.invokers import MultiThreadedInvoker
 from edera.invokers import PersistentInvoker
 from edera.managers import CascadeManager
 from edera.monitoring import MonitoringAgent
+from edera.monitoring import MonitorWatcher
 from edera.routine import deferrable
 from edera.routine import routine
 from edera.workflow.builder import WorkflowBuilder
@@ -54,6 +55,8 @@ class Daemon(object):
     Only $prelude's workflows can actually finish.
 
     The daemon handles SIGINT/SIGTERM signals and knows how to stop gracefully.
+    However, you should avoid having active background threads while running the daemon.
+    This may lead to a deadlock (see documentation for $ProcessWorker for details).
 
     Attributes:
         autotester (Optional[DaemonAutoTester]) - the auto-tester used to testify workflows
@@ -160,6 +163,7 @@ class Daemon(object):
         yield TaskFreezer()
         yield WorkflowNormalizer()
 
+    @routine
     def run(self):
         """
         Start the daemon.
@@ -169,15 +173,13 @@ class Daemon(object):
             if interruption_flag.raised:
                 raise SystemExit("SIGINT/SIGTERM received")
 
-        if threading.active_count() > 1:
-            logging.getLogger(__name__).warning("Active background threads might cause a deadlock")
         multiprocessing.current_process().name = "-"
         threading.current_thread().name = "-"
         interruption_flag = InterProcessFlag()
         with Sasha({signal.SIGINT: interruption_flag.up, signal.SIGTERM: interruption_flag.up}):
             logging.getLogger(__name__).info("Daemon starting")
             try:
-                self.__run[check_interruption_flag]()
+                yield self.__run[check_interruption_flag].defer()
             except SystemExit as error:
                 logging.getLogger(__name__).info("Daemon stopped: %s", error)
 
@@ -198,9 +200,7 @@ class Daemon(object):
                 self.autotester.testify(workflow)
             for processor in self.preprocessors:
                 yield deferrable(processor.process).defer(workflow)
-            if tag is not None:
-                yield
-                TagFilter(tag).process(workflow)
+            TagFilter(tag).process(workflow)
             for processor in self.postprocessors:
                 yield deferrable(processor.process).defer(workflow)
         box.put(workflow)
@@ -233,12 +233,20 @@ class Daemon(object):
                 yield self.__run_module.defer("prelude", self.prelude, sustain=False)
             yield self.__run_module.defer("main", self.main, testable=True)
 
+        @routine
+        def run_watcher():
+            if self.monitor is not None:
+                watcher = MonitorWatcher(self.monitor)
+                delay = datetime.timedelta(seconds=1)
+                yield PersistentInvoker(watcher.run, delay=delay).invoke.defer()
+
         timeout = 2 * self.interruption_timeout
         yield MultiProcessInvoker(
             {
                 "consumer": run_consumer,
                 "launcher#support": run_support,
                 "launcher#main": run_main,
+                "watcher": run_watcher,
             },
             interruption_timeout=timeout).invoke.defer()
 
