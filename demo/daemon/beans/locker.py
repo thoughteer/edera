@@ -1,7 +1,8 @@
 import os.path
 
-from edera.demo.daemon.beans import arguments
 from edera.lockers import DirectoryLocker
+
+from . import arguments
 
 
 class Bean(DirectoryLocker):

@@ -1,7 +1,8 @@
 import os.path
 
-from edera.demo.daemon.beans import arguments
 from edera.storages import SQLiteStorage
+
+from . import arguments
 
 
 class Bean(SQLiteStorage):

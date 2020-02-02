@@ -1,8 +1,8 @@
 import os.path
 
-from edera.demo.daemon.beans import arguments
-from edera.demo.daemon.beans import colorbox
-from edera.demo.daemon.beans import colorful
+from . import arguments
+from . import colorbox
+from . import colorful
 
 
 @colorful

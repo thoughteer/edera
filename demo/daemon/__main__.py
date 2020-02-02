@@ -9,15 +9,8 @@ from edera.condition import Condition
 from edera.daemon import Daemon
 from edera.daemon import DaemonAutoTester
 from edera.daemon import DaemonModule
-from edera.daemon import StaticDaemonModule
 from edera.daemon import DaemonSchedule
-from edera.demo.daemon.beans import arguments
-from edera.demo.daemon.beans import cache
-from edera.demo.daemon.beans import colorbox
-from edera.demo.daemon.beans import fs
-from edera.demo.daemon.beans import locker
-from edera.demo.daemon.beans import monitor
-from edera.monitoring import MonitorWatcher
+from edera.daemon import StaticDaemonModule
 from edera.parameterizable import Parameter
 from edera.parameterizable import Parameterizable
 from edera.qualifiers import DiscreteDateTime
@@ -28,6 +21,13 @@ from edera.task import Task
 from edera.testing import DefaultScenario
 from edera.testing import ScenarioWithProvidedStubs
 from edera.testing import TestableTask
+
+from .beans import arguments
+from .beans import cache
+from .beans import colorbox
+from .beans import fs
+from .beans import locker
+from .beans import monitor
 
 
 SINK = logging.getLogger("edera.monitoring.sink")
@@ -113,7 +113,7 @@ class HashEachLine(Parameterizable, Task):
 
     @routine
     def execute(self):
-        SINK.info("Learn more: https://ya.ru?q=sha-1")
+        SINK.info("Learn more: https://duckduckgo.com/?q=sha-1")
         yield edera.helpers.sleep.defer(datetime.timedelta(seconds=arguments.sleep))
         with fs.read(self.input_file) as input_stream:
             with fs.create(self.output_file) as output_stream:
@@ -247,53 +247,53 @@ class HashFile(Parameterizable, TestableTask):
         return self.output_file + ".buffer"
 
     @property
-    def buffer_removal_task(self):
+    def buffer_remover(self):
         return RemoveFile(path=self.buffer_file)
 
     @property
-    def input_download_task(self):
+    def input_downloader(self):
         return DownloadFile(path=self.input_file)
 
     @property
-    def letter_picking_task(self):
+    def letter_picker(self):
         return PickFirstLetters(input_file=self.buffer_file, output_file=self.output_file)
 
     @property
-    def line_hashing_task(self):
+    def line_hasher(self):
         return HashEachLine(
             input_file=self.input_file, output_file=self.buffer_file, salt=self.salt)
 
     @shortcut
     def requisite(self):
         yield {
-            self.line_hashing_task: self.input_download_task,
-            self.letter_picking_task: self.line_hashing_task,
-            self.buffer_removal_task: [self.letter_picking_task, self.line_hashing_task],
-            self: self.letter_picking_task,
+            self.line_hasher: self.input_downloader,
+            self.letter_picker: self.line_hasher,
+            self.buffer_remover: [self.letter_picker, self.line_hasher],
+            self: self.letter_picker,
         }
         yield {
-            self.line_hashing_task: Annotate(
+            self.line_hasher: Annotate(
                 "tests",
                 [
-                    self.line_hashing_task.Validate(
+                    self.line_hasher.Validate(
                         stubs={
-                            self.input_download_task: self.input_download_task.Mock(data=self.line_hashing_task.Validate.input_data),
+                            self.input_downloader: self.input_downloader.Mock(data=self.line_hasher.Validate.input_data),
                         }),
                 ]),
-            self.letter_picking_task: Annotate(
+            self.letter_picker: Annotate(
                 "tests",
                 [
-                    self.letter_picking_task.Validate(
+                    self.letter_picker.Validate(
                         stubs={
-                            self.line_hashing_task: self.line_hashing_task.Mock(data=self.letter_picking_task.Validate.input_data),
+                            self.line_hasher: self.line_hasher.Mock(data=self.letter_picker.Validate.input_data),
                         }),
                 ]),
-            self.buffer_removal_task: Annotate(
+            self.buffer_remover: Annotate(
                 "tests",
                 [
-                    self.buffer_removal_task.Validate(
+                    self.buffer_remover.Validate(
                         stubs={
-                            self.line_hashing_task: self.line_hashing_task.Mock(data=""),
+                            self.line_hasher: self.line_hasher.Mock(data=""),
                         }),
                 ]),
         }
@@ -351,36 +351,12 @@ class DemoPrelude(StaticDaemonModule):
     scheduling = {None: DaemonSchedule(execution_delay="PT1S")}
 
 
-class WatchMonitor(Task):
-
-    @routine
-    def execute(self):
-        yield MonitorWatcher(monitor).run.defer()
-
-
-class DemoSupport(DaemonModule):
-
-    @property
-    def scheduling(self):
-        return {None: DaemonSchedule(execution_delay="PT1S")}
-
-    def seed(self, now):
-        return WatchMonitor()
-
-
-class DemoDaemonAutoTester(DaemonAutoTester):
-
-    box = colorbox
-    registry = cache
-
-
 class DemoDaemon(Daemon):
 
-    autotester = DemoDaemonAutoTester() if arguments.test else None
+    autotester = DaemonAutoTester(colorbox, cache) if arguments.test else None
     locker = locker
     cache = cache
     monitor = monitor
-    support = DemoSupport()
     prelude = DemoPrelude()
     main = DemoMain()
 
