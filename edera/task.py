@@ -90,4 +90,4 @@ class TaskWrapper(Task):
         return self.__base.target
 
     def unwrap(self):
-        return self.__base
+        return self.__base.unwrap()

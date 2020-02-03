@@ -73,8 +73,7 @@ def test_agent_embraces_workflow_correctly(agent):
     assert updates[0][1].baggages == {"B": {"key": "value"}}
     a = result[A()].item
     assert isinstance(a, LogCapturingTaskWrapper)
-    assert isinstance(a.unwrap(), StatusReportingTaskWrapper)
-    assert isinstance(a.unwrap().unwrap(), A)
+    assert isinstance(a.unwrap(), A)
     assert isinstance(result[B()].item, B)
 
 
