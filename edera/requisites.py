@@ -55,6 +55,30 @@ class Assign(Requisite):
         yield (self.task, self.requisite)
 
 
+class ExtendAnnotation(Requisite):
+    """
+    A requisite that extends an annotation of the requisitor.
+
+    Assumes the annotation values form a set.
+    """
+
+    priority = -2
+
+    def __init__(self, key, values):
+        """
+        Args:
+            key (String)
+            values (Set[Any])
+        """
+        self.key = key
+        self.values = values
+
+    def satisfy(self, requisitor, workflow):
+        if self.key not in workflow[requisitor].annotation:
+            workflow[requisitor].annotation[self.key] = set()
+        workflow[requisitor][self.key].update(self.values)
+
+
 class Follow(Requisite):
     """
     A requisite that adds a link from some task to the requisitor.

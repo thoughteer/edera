@@ -16,12 +16,12 @@ class TestableTask(Task):
     """
     A task class that automatically annotates itself with "tests".
 
-    The "tests" annotation is taken from the "tests" attribute and defines the list of available
+    The "tests" annotation is taken from the "tests" attribute and defines the set of available
     testing scenarios for the task.
-    $DefaultScenario will be used if you don't provide a custom value.
+    Only $DefaultScenario will be used if you don't provide a custom value.
 
     Attributes:
-        tests (Iterable[Scenario]) - the list of available testing scenarios
+        tests (Iterable[Scenario]) - the set of available testing scenarios
 
     See also:
         $Stub
