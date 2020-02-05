@@ -1,5 +1,7 @@
 import pytest
+from sympy.logic import boolalg as sympyboolalg
 
+from edera import Condition
 from edera import Task
 from edera.exceptions import WorkflowTestificationError
 from edera.requisites import shortcut
@@ -8,6 +10,28 @@ from edera.testing import DefaultScenario
 from edera.testing import TestableTask
 from edera.workflow import WorkflowBuilder
 from edera.workflow.processors import WorkflowTestifier
+from edera.workflow.processors.workflow_testifier import SuffixingConditionWrapper
+from edera.workflow.processors.workflow_testifier import SuffixingTaskWrapper
+
+
+class F(Condition):
+
+    def check(self):
+        return False
+
+
+class T(Condition):
+
+    def check(self):
+        return True
+
+    @property
+    def expression(self):
+        return sympyboolalg.Not(F().symbol)
+
+    @property
+    def invariants(self):
+        yield self >> ~F()
 
 
 def test_workflow_testifier_notifies_about_overstubbing():
@@ -31,9 +55,9 @@ def test_workflow_testifier_notifies_about_overstubbing():
             return {B(): DefaultScenario()}  # not in the $dependencies
 
     workflow = WorkflowBuilder().build(B())
-    cache = InMemoryStorage()
+    registry = InMemoryStorage()
     with pytest.raises(WorkflowTestificationError):
-        WorkflowTestifier(cache).process(workflow)
+        WorkflowTestifier(registry).process(workflow)
 
 
 def test_workflow_testifier_notifies_about_scenario_conflicts():
@@ -74,9 +98,9 @@ def test_workflow_testifier_notifies_about_scenario_conflicts():
         pass
 
     workflow = WorkflowBuilder().build(C())
-    cache = InMemoryStorage()
+    registry = InMemoryStorage()
     with pytest.raises(WorkflowTestificationError):
-        WorkflowTestifier(cache).process(workflow)
+        WorkflowTestifier(registry).process(workflow)
 
 
 def test_workflow_testifier_colorizes_tasks_accordingly():
@@ -127,15 +151,16 @@ def test_workflow_testifier_colorizes_tasks_accordingly():
         pass
 
     workflow = WorkflowBuilder().build(E())
-    cache = InMemoryStorage()
-    WorkflowTestifier(cache).process(workflow)
+    registry = InMemoryStorage()
+    WorkflowTestifier(registry).process(workflow)
     assert len(workflow) == 6
 
 
 def test_workflow_testifier_works_correctly():
 
     class A(Task):
-        pass
+
+        target = T()
 
     class B(TestableTask):
 
@@ -173,7 +198,7 @@ def test_workflow_testifier_works_correctly():
     class FirstScenarioForD(DefaultScenario):
 
         def stub(self, subject, dependencies):
-            return {A(): DefaultScenario(), B(): DefaultScenario()}
+            return {A(): DefaultScenario(), B(): DefaultScenario(), C(): DefaultScenario()}
 
     class SecondScenarioForD(DefaultScenario):
 
@@ -189,8 +214,30 @@ def test_workflow_testifier_works_correctly():
             return {C(): DefaultScenario()}
 
     workflow = WorkflowBuilder().build(E())
-    cache = InMemoryStorage()
-    WorkflowTestifier(cache).process(workflow)
+    registry = InMemoryStorage()
+    WorkflowTestifier(registry).process(workflow)
     assert len(workflow) == 8
     assert sum(len(workflow[task].parents) for task in workflow) == 6
     assert len(set(workflow[task]["color"] for task in workflow)) == 2
+    assert len(set(workflow[task].item.target for task in workflow)) == 7
+
+
+def test_suffixing_task_wrapper_works_correctly():
+
+    class A(Task):
+        target = T()
+
+    wrapper = SuffixingTaskWrapper(A(), "!")
+    assert wrapper.name == "A!"
+    assert wrapper.target.name == "T!"
+
+
+def test_suffixing_condition_wrapper_works_correctly():
+    fw = SuffixingConditionWrapper(F(), "!")
+    assert not fw.check()
+    assert fw.name == "F!"
+    assert fw.expression is None
+    tw = SuffixingConditionWrapper(T(), "!")
+    assert tw.name == "T!"
+    assert tw.expression == sympyboolalg.Not(fw.symbol)
+    assert next(tw.invariants).name == "(T >> ~F)!"

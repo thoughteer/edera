@@ -1,6 +1,8 @@
 import functools
 import sys
 
+import edera.helpers
+
 
 class Routine(object):
     """
@@ -88,12 +90,17 @@ class Routine(object):
             while True:
                 try:
                     feed = generator.send(seed) if exception is None else generator.throw(*exception)
+                except RoutineAuditionError as error:
+                    raise error.cause
                 except StopIteration:
                     return
                 if isinstance(feed, DeferredRoutineCall):
                     feed.instance = feed.instance[auditor]
                 try:
-                    auditor()
+                    try:
+                        auditor()
+                    except BaseException as error:
+                        raise RoutineAuditionError(error)
                     seed = yield feed
                 except BaseException:
                     exception = sys.exc_info()
@@ -167,6 +174,36 @@ class DeferredRoutineCall(object):
             Any - the result of the call
         """
         return self.instance(*self.args, **self.kwargs)
+
+
+class RoutineAuditionError(BaseException):
+
+    def __init__(self, cause):
+        self.cause = cause
+
+
+class Timer(object):
+    """
+    A routine auditor that raises $Timer.Timeout after specified time.
+
+    Attributes:
+        duration (TimeDelta)
+    """
+
+    class Timeout(BaseException):
+        pass
+
+    def __call__(self):
+        if edera.helpers.now() - self.__start > self.duration:
+            raise Timer.Timeout
+
+    def __init__(self, duration):
+        """
+        Args:
+            duration (TimeDelta)
+        """
+        self.duration = duration
+        self.__start = edera.helpers.now()
 
 
 def deferrable(function):

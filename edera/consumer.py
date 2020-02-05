@@ -8,18 +8,18 @@ class Consumer(object):
     """
     A generic consumer protocol.
 
-    You can push elements to the consumer.
+    You can feed elements to the consumer.
     It's up to the consumer how to treat the elements.
     """
 
     @abc.abstractmethod
-    def push(self, element):
+    def consume(self, element):
         """
-        Push the element to the consumer.
+        Consume the element.
 
         Args:
             element (Any)
 
         Raises:
-            ConsumptionError if the consumer failed to accept the element
+            ConsumptionError if the consumer failed to consume the element
         """

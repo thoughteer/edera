@@ -236,13 +236,12 @@ class StorageOperationError(Error):
     """
 
 
-class MonitorInconsistencyError(Error):
+class MonitorInconsistencyError(ExcusableError):
     """
-    Monitoring data has been corrupted.
+    A checkpoint is no longer valid.
 
-    Perhaps, you're running multiple instances of $MonitorWatcher at the same time.
-    That is a big no-no.
-    Use a locker to prevent parallel execution.
+    This might happen when you run multiple instances of $MonitorWatcher at the same time.
+    But it's totally fine, should be ignored.
     """
 
 

@@ -1,4 +1,3 @@
-import os.path
 import uuid
 
 import pytest
@@ -14,9 +13,12 @@ def inmemory_storage():
     return InMemoryStorage()
 
 
-@pytest.fixture
+@pytest.yield_fixture
 def sqlite_database(tmpdir):
-    return os.path.join(str(tmpdir), "storage.db")
+    try:
+        yield str(tmpdir.join("storage.db"))
+    finally:
+        tmpdir.remove()
 
 
 @pytest.fixture

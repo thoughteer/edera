@@ -38,9 +38,6 @@ class Beanbag(object):
             >>>         return my_other_bean + "!"
     """
 
-    def __delattr__(self, name):
-        return delattr(object.__getattribute__(self, "___beanbag"), name)
-
     def __getattr__(self, name):
         return getattr(object.__getattribute__(self, "___beanbag"), name)
 

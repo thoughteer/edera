@@ -166,7 +166,7 @@ class TaskPayload(Serializable):
 
     Attributes:
         dependencies (Optional[Set[String]]) - the set of aliases of tasks that the task depends on
-        logs (Mapping[String, List[Tuple[DateTime, String]]]) - log messages, grouped by agent name,
+        logs (Mapping[String, List[Tuple[DateTime, String]]]) - log messages, grouped by agent,
                 with corresponding timestamps
     """
 
@@ -192,7 +192,7 @@ class MonitoringSnapshotUpdate(AbstractSerializable):
 
         Args:
             snapshot (MonitoringSnapshot) - a snapshot to update
-            agent (MonitoringAgent) - an agent that caused the update
+            agent (String) - the name of the agent that caused the update
 
         Returns:
             Iterable[String] - names of tasks the payload of which was affected
@@ -233,9 +233,11 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
         for task in snapshot.core.aliases:
             alias = snapshot.core.aliases[task]
             state = snapshot.core.states[alias]
+            if agent in state.runs:
+                del state.runs[agent]
             if task not in self.dependencies:
-                if agent.name in state.agents:
-                    state.agents.remove(agent.name)
+                if agent in state.agents:
+                    state.agents.remove(agent)
                     if not state.agents and not state.completed:
                         if self.__check_for_active_descendants(alias, topology, active):
                             state.stale = False
@@ -244,10 +246,8 @@ class WorkflowUpdate(MonitoringSnapshotUpdate):
                             state.stale = True
                 continue
             state.phony = task in self.phonies
-            state.agents.add(agent.name)
+            state.agents.add(agent)
             state.stale = False
-            if agent.name in state.runs:
-                del state.runs[agent.name]
             state.baggage = self.baggages.get(task, {})
             payload = snapshot.payloads[alias]
             if payload.dependencies is None:
@@ -307,16 +307,16 @@ class TaskStatusUpdate(MonitoringSnapshotUpdate):
         state = snapshot.core.states[snapshot.core.aliases[self.task]]
         if self.status == "completed":
             state.completed = True
-            if agent.name in state.runs:
-                assert state.runs[agent.name] <= self.timestamp
+            if agent in state.runs:
+                assert state.runs[agent] <= self.timestamp
                 if state.span is None or state.span[1] > self.timestamp:
-                    state.span = (state.runs[agent.name], self.timestamp)
+                    state.span = (state.runs[agent], self.timestamp)
         elif self.status == "failed":
-            state.failures[agent.name] = self.timestamp
+            state.failures[agent] = self.timestamp
         if self.status == "running":
-            state.runs[agent.name] = self.timestamp
-        elif agent.name in state.runs:
-            del state.runs[agent.name]
+            state.runs[agent] = self.timestamp
+        elif agent in state.runs:
+            del state.runs[agent]
         return []
 
 
@@ -354,9 +354,9 @@ class TaskLogUpdate(MonitoringSnapshotUpdate):
         if self.task not in snapshot:
             snapshot.add([self.task])
         logs = snapshot.payloads[snapshot.core.aliases[self.task]].logs
-        if agent.name not in logs:
-            logs[agent.name] = []
-        log = logs[agent.name]
+        if agent not in logs:
+            logs[agent] = []
+        log = logs[agent]
         log.insert(0, (self.timestamp, self.message))
         if len(log) > self.LIMIT:
             log.pop()

@@ -4,6 +4,7 @@ from edera import Condition
 from edera import Parameter
 from edera import Parameterizable
 from edera import Task
+from edera.exceptions import ExcusableError
 from edera.qualifiers import Integer
 from edera.requisites import shortcut
 from edera.workflow import WorkflowBuilder
@@ -22,6 +23,18 @@ class StillIncomplete(Condition):
         return False
 
 
+class Unknown(Condition):
+
+    def check(self):
+        raise ExcusableError("no idea")
+
+
+class Broken(Condition):
+
+    def check(self):
+        raise RuntimeError("oops")
+
+
 @pytest.mark.parametrize("n", [1, 2, 3, 5, 10, 19])
 def test_workflow_trimmer_trims_linear_workflow_well(n):
 
@@ -38,6 +51,8 @@ def test_workflow_trimmer_trims_linear_workflow_well(n):
 
         @property
         def target(self):
+            if self.i == self.s:
+                return Unknown() if self.i % 2 == 0 else Broken()
             return AlreadyComplete() if self.i < self.s else StillIncomplete()
 
     for s in range(n):

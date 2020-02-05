@@ -1,4 +1,5 @@
 from edera.helpers import phony
+from edera.helpers import Phony
 from edera.nameable import Nameable
 
 
@@ -10,6 +11,7 @@ class Task(Nameable):
     They serve as building blocks for workflows that get executed.
 
     Attributes:
+        phony (Boolean) - whether the task does nothing
         requisite (Optional[Requisite]) - the requisite of the task
             Default is $None.
         target (Optional[Condition]) - the completeness condition of the task
@@ -33,6 +35,10 @@ class Task(Nameable):
     @property
     def name(self):
         return self.__class__.__name__
+
+    @property
+    def phony(self):
+        return self.execute is Phony
 
     @property
     def requisite(self):
@@ -84,4 +90,4 @@ class TaskWrapper(Task):
         return self.__base.target
 
     def unwrap(self):
-        return self.__base
+        return self.__base.unwrap()

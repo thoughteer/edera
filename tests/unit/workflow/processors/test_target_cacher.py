@@ -1,6 +1,7 @@
 from edera import Condition
 from edera import Task
 from edera.exceptions import StorageOperationError
+from edera.requisites import shortcut
 from edera.storages import InMemoryStorage
 from edera.workflow import WorkflowBuilder
 from edera.workflow.processors import TargetCacher
@@ -18,10 +19,17 @@ def test_target_cacher_checks_target_only_once():
 
         target = C()
 
+    class X(Task):
+
+        @shortcut
+        def requisite(self):
+            return T()
+
     counter = [0]
-    workflow = WorkflowBuilder().build(T())
+    workflow = WorkflowBuilder().build(X())
     cache = InMemoryStorage()
     TargetCacher(cache).process(workflow)
+    assert workflow[X()].item.phony
     assert workflow[T()].item.target.check()
     assert counter[0] == 1
     assert workflow[T()].item.target.check()

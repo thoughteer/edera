@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name="edera",
-    version="0.11.4",
+    version="0.12",
     description="A distributed workflow management framework",
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -25,7 +25,7 @@ setuptools.setup(
     author="Iskander Sitdikov",
     author_email="thoughteer@gmail.com",
     license="MIT",
-    packages=setuptools.find_packages(exclude=["tests", "tests.*"]),
+    packages=setuptools.find_packages(exclude=["demo", "demo.*", "tests", "tests.*"]),
     include_package_data=True,
     install_requires=[
         "flask >= 1.0.2, < 2.0",

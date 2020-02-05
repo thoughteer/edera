@@ -36,7 +36,7 @@ class WorkflowBuilder(object):
                 subrequests = requisite.satisfy(requisitor, result)
                 if subrequests is not None:
                     stack.append((iter(subrequests), requisite.priority))
-                continue
+                continue  # pragma: no cover
             request = next(stack[-1][0], None)
             if request is None:
                 stack.pop()

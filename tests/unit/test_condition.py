@@ -4,6 +4,7 @@ from sympy.logic import boolalg as sympyboolalg
 import edera.condition
 
 from edera import Condition
+from edera import ConditionWrapper
 
 
 class AlwaysTrue(Condition):
@@ -36,9 +37,30 @@ class SometimesTrue(Condition):
         return "SometimesTrue"
 
 
+class Falsifier(ConditionWrapper):
+
+    def check(self):
+        return False
+
+
 def test_condition_is_abstract():
     with pytest.raises(TypeError):
         Condition()
+
+
+def test_condition_wrapper_behaves_as_expected():
+    true = AlwaysTrue()
+    wrapper = Falsifier(true)
+    assert wrapper.name == true.name
+    assert wrapper.expression is None
+    assert not wrapper.invariants
+    assert not wrapper.check()
+    assert wrapper.unwrap() is true
+
+
+def test_condition_can_be_unwrapped_as_itself():
+    true = AlwaysTrue()
+    assert true.unwrap() is true
 
 
 def test_condition_is_free_of_constraints_by_default():
@@ -74,10 +96,15 @@ def test_consecutive_conjunctions_fold_into_one():
     true = AlwaysTrue()
     false = AlwaysFalse()
     random = SometimesTrue()
-    conjunction = true & (false & random)
-    assert not conjunction.check()
-    assert conjunction.name == "(AlwaysFalse & AlwaysTrue & SometimesTrue)"
-    assert conjunction.expression == sympyboolalg.And(true.symbol, false.symbol, random.symbol)
+    for conjunction in [(true & false) & random, true & (false & random)]:
+        assert not conjunction.check()
+        assert conjunction.name == "(AlwaysFalse & AlwaysTrue & SometimesTrue)"
+        assert conjunction.expression == sympyboolalg.And(
+            true.symbol, false.symbol, random.symbol)
+    megatrue = (true & true) & (true & true)
+    assert megatrue.check()
+    assert megatrue.name == "(AlwaysTrue & AlwaysTrue & AlwaysTrue & AlwaysTrue)"
+    assert megatrue.expression == sympyboolalg.And(*[true.symbol]*4)
 
 
 def test_conditions_can_be_disjuncted():
@@ -93,10 +120,14 @@ def test_consecutive_disjunctions_fold_into_one():
     true = AlwaysTrue()
     false = AlwaysFalse()
     random = SometimesTrue()
-    disjunction = true | (false | random)
-    assert disjunction.check()
-    assert disjunction.name == "(AlwaysFalse | AlwaysTrue | SometimesTrue)"
-    assert disjunction.expression == sympyboolalg.Or(true.symbol, false.symbol, random.symbol)
+    for disjunction in [(true | false) | random, true | (false | random)]:
+        assert disjunction.check()
+        assert disjunction.name == "(AlwaysFalse | AlwaysTrue | SometimesTrue)"
+        assert disjunction.expression == sympyboolalg.Or(true.symbol, false.symbol, random.symbol)
+    megafalse = (false | false) | (false | false)
+    assert not megafalse.check()
+    assert megafalse.name == "(AlwaysFalse | AlwaysFalse | AlwaysFalse | AlwaysFalse)"
+    assert megafalse.expression == sympyboolalg.Or(*[false.symbol]*4)
 
 
 def test_conditions_can_be_exclusively_disjuncted():
@@ -112,10 +143,15 @@ def test_consecutive_exclusive_disjunctions_fold_into_one():
     true = AlwaysTrue()
     false = AlwaysFalse()
     random = SometimesTrue()
-    disjunction = true ^ (false ^ random)
-    assert disjunction.check()
-    assert disjunction.name == "(AlwaysFalse ^ AlwaysTrue ^ SometimesTrue)"
-    assert disjunction.expression == sympyboolalg.Xor(true.symbol, false.symbol, random.symbol)
+    for disjunction in [(true ^ false) ^ random, true ^ (false ^ random)]:
+        assert disjunction.check()
+        assert disjunction.name == "(AlwaysFalse ^ AlwaysTrue ^ SometimesTrue)"
+        assert disjunction.expression == sympyboolalg.Xor(true.symbol, false.symbol, random.symbol)
+    megafalse = (true ^ false) ^ (false ^ true)
+    assert not megafalse.check()
+    assert megafalse.name == "(AlwaysFalse ^ AlwaysFalse ^ AlwaysTrue ^ AlwaysTrue)"
+    assert megafalse.expression == sympyboolalg.Xor(
+        true.symbol, false.symbol, false.symbol, true.symbol)
 
 
 def test_condition_can_imply_another_one():
@@ -169,6 +205,7 @@ def test_conditions_constraint_gets_derived_correctly():
         def invariants(self):
             yield ~self >> SecondTableExists()
 
+    assert edera.condition.derive_constraint([]) == sympyboolalg.true
     conditions = [
         DatabaseExists(),
         ~FirstTableIsEmpty(),
@@ -182,3 +219,4 @@ def test_conditions_constraint_gets_derived_correctly():
     )
     equivalence = sympyboolalg.Equivalent(derived_constraint, expected_constraint)
     assert sympyboolalg.simplify_logic(equivalence) is sympyboolalg.true
+

@@ -30,17 +30,17 @@ class WorkflowTestifier(WorkflowProcessor):
         $TestableTask
     """
 
-    def __init__(self, cache, selector=AllTestSelector(), partitioner=GreedyPartitioner()):
+    def __init__(self, registry, selector=AllTestSelector(), partitioner=GreedyPartitioner()):
         """
         Args:
-            cache (Storage) - a storage used to store passed tests
-                Can be safely shared with the one used for $TargetCacher.
+            registry (Storage) - a storage used to store passed tests
+                Can be safely shared with a cache used for $TargetCacher.
             selector (TestSelector) - a test selector to use
                 Default is "all available".
             partitioner (Partitioner) - a partitioner used to group tests and stubs
                 Default is the greedy partitioner.
         """
-        self.__Test = type.__new__(type, "Test", (Test,), {"cache": cache})
+        self.__Test = type.__new__(type, "Test", (Test,), {"registry": registry})
         self.__selector = selector
         self.__partitioner = partitioner
 

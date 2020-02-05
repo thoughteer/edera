@@ -10,6 +10,9 @@ from edera.workflow.processors import TaskSegregator
 from edera.workflow.processors import WorkflowTestifier
 
 
+DEFAULT_TIMESTAMP = DateTime.qualify("1991-07-26T09:00:00Z")[0]
+
+
 @six.add_metaclass(abc.ABCMeta)
 class DaemonAutoTester(object):
     """
@@ -19,7 +22,7 @@ class DaemonAutoTester(object):
 
     Attributes:
         box (Box) - the box that will keep the current test group color
-        cache (Storage) - the storage used to mark passed tests
+        registry (Storage) - the storage used to mark passed tests
         selector (TestSelector)
         timestamps (Iterable[DateTime]) - the set of timestamps used for seeding
     """
@@ -28,8 +31,16 @@ class DaemonAutoTester(object):
     def box(self):
         pass
 
+    @abc.abstractmethod
+    def finish(self):
+        """
+        Finish tests.
+
+        This method will be called once all tests pass.
+        """
+
     @abc.abstractproperty
-    def cache(self):
+    def registry(self):
         pass
 
     def seed(self, seeder):
@@ -70,9 +81,9 @@ class DaemonAutoTester(object):
             $TaskSegregator
             $WorkflowTestifier
         """
-        WorkflowTestifier(self.cache, selector=self.selector).process(workflow)
+        WorkflowTestifier(self.registry, selector=self.selector).process(workflow)
         TaskSegregator(self.box).process(workflow)
 
     @property
     def timestamps(self):
-        yield DateTime.qualify("1991-07-26T09:00:00Z")[0]
+        return [DEFAULT_TIMESTAMP]

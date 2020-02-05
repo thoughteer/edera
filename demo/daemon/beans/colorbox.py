@@ -1,5 +1,6 @@
-from edera.demo.daemon.beans import threadsafe
 from edera.helpers import SimpleBox
+
+from . import threadsafe
 
 
 @threadsafe

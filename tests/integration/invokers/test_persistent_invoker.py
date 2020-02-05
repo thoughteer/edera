@@ -5,6 +5,7 @@ import time
 import pytest
 
 from edera import routine
+from edera.exceptions import ExcusableError
 from edera.invokers import PersistentInvoker
 
 
@@ -34,7 +35,7 @@ def test_invoker_runs_action_forever():
 
     def append_current_timestamp():
         counter[0] += 1
-        raise RuntimeError("to be swallowed")
+        raise ExcusableError("to be swallowed")
 
     def audit():
         if interrupted:

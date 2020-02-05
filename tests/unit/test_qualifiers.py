@@ -181,6 +181,8 @@ def test_date_qualifier_accepts_strings_in_strict_iso8601_format():
         Date.qualify("03-15-2017")
     with pytest.raises(ValueQualificationError):
         Date.qualify("2017-03-15T00:00:00Z")
+    with pytest.raises(ValueQualificationError):
+        Date.qualify("0000-00-00")
 
 
 def test_datetime_qualifier_accepts_datetime_objects_from_standard_library():
@@ -194,6 +196,11 @@ def test_datetime_qualifier_accepts_datetime_objects_from_standard_library():
 def test_datetime_qualifier_does_not_accept_date_objects():
     with pytest.raises(ValueQualificationError):
         DateTime.qualify(datetime.date(2017, 3, 15))
+
+
+def test_datetime_qualifier_does_not_accept_naive_datetime_objects():
+    with pytest.raises(ValueQualificationError):
+        DateTime.qualify(datetime.datetime(2017, 3, 15))
 
 
 def test_datetime_qualifier_accepts_strings_in_strict_iso8601_format():
@@ -223,6 +230,8 @@ def test_datetime_qualifier_accepts_strings_in_strict_iso8601_format():
         DateTime.qualify("2017-03-15 10:06:02Z")
     with pytest.raises(ValueQualificationError):
         DateTime.qualify("2017-03-15T10:06:02-25:00")
+    with pytest.raises(ValueQualificationError):
+        DateTime.qualify("0000-00-00T00:00:00Z")
 
 
 def test_timedelta_qualifier_accepts_timedelta_objects_from_standard_library():

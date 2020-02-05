@@ -42,10 +42,7 @@ class MongoStorage(Storage):
     def collection(self):
         result = self.database[self.__collection]
         if not self.__indexed:
-            try:
-                result.create_index([("key", pymongo.ASCENDING), ("version", pymongo.ASCENDING)])
-            except pymongo.errors.PyMongoError as error:
-                raise StorageOperationError("failed to create index: %s" % error)
+            result.create_index([("key", pymongo.ASCENDING), ("version", pymongo.ASCENDING)])
             self.__indexed = True
         return result
 
@@ -83,7 +80,7 @@ class MongoStorage(Storage):
             self.collection.insert_one({"key": key, "version": version, "value": value})
             return version
         except pymongo.errors.PyMongoError as error:
-            raise StorageOperationError("failed to read from the MongoDB collection: %s" % error)
+            raise StorageOperationError("failed to write to the MongoDB collection: %s" % error)
 
     def __decode_document(self, document):
         return (document["key"], document["version"], document["value"])

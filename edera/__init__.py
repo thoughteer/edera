@@ -2,6 +2,7 @@ from .condition import Condition
 from .condition import ConditionWrapper
 from .routine import deferrable
 from .routine import routine
+from .routine import Timer
 from .disjointset import DisjointSet
 from .flag import Flag
 from .graph import Graph

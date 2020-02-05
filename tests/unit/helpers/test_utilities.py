@@ -31,6 +31,7 @@ def test_methods_can_be_memoized():
             self.calls += 1
             return 1 if n <= 2 else self.compute(n - 1) + self.compute(n - 2)
 
+    assert Fibonacci.compute.__name__ == "compute"
     fibonacci = Fibonacci()
     assert fibonacci.compute(100) == 354224848179261915075
     assert fibonacci.calls == 100
@@ -52,6 +53,11 @@ def test_mappings_get_rendered_correctly():
 def test_iterables_get_rendered_correctly():
     value = (["1"], ["2", "3"])
     assert edera.helpers.render(value) == "\n * ['1']\n * ['2', '3']"
+
+
+def test_rendering_fails_if_not_supported():
+    with pytest.raises(NotImplementedError):
+        edera.helpers.render(1)
 
 
 def test_sha1_produces_correct_result():

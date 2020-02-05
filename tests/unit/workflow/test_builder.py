@@ -1,5 +1,6 @@
 from edera import Task
 from edera.requisites import Annotate
+from edera.requisites import ExtendAnnotation
 from edera.requisites import shortcut
 from edera.workflow import WorkflowBuilder
 
@@ -31,9 +32,10 @@ class C(Task):
 
 class D(Task):
 
-    @property
+    @shortcut
     def requisite(self):
-        return Annotate(key="key", value=["value"])
+        yield Annotate(key="simple", value="value")
+        yield ExtendAnnotation(key="complex", values={"v1", "v2"})
 
 
 class E(Task):
@@ -58,7 +60,7 @@ def test_builder_builds_workflow_correctly():
     assert workflow[D()].item == D()
     assert workflow[D()].children == {B(), Z()}
     assert not workflow[D()].parents
-    assert workflow[D()].annotation == {"key": ["value"]}
+    assert workflow[D()].annotation == {"simple": "value", "complex": {"v1", "v2"}}
     assert workflow[E()].item == E()
     assert not workflow[E()].children
     assert workflow[E()].parents == {A(), Z()}

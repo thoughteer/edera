@@ -3,6 +3,7 @@ import logging
 
 import six
 
+from edera.exceptions import ExcusableError
 from edera.graph import Graph
 from edera.linearizers import DFSLinearizer
 from edera.routine import deferrable

@@ -195,7 +195,7 @@ class ConditionWrapper(Condition):
         return self.__base.name
 
     def unwrap(self):
-        return self.__base
+        return self.__base.unwrap()
 
 
 class ConditionNegation(Condition):

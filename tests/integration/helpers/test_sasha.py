@@ -1,7 +1,6 @@
-import multiprocessing
 import os
 import signal
-import time
+import threading
 
 import pytest
 
@@ -34,29 +33,12 @@ def test_sasha_restores_original_handlers_on_exit():
 
 
 def test_sasha_handles_signals_correctly():
-
-    def target(ready_flag, receive_flag):
-        with Sasha({signal.SIGINT: receive_flag.set, signal.SIGTERM: receive_flag.set}):
-            ready_flag.set()
-            while True:
-                time.sleep(1.0)
-
-    ready_flag = multiprocessing.Event()
-    receive_flag = multiprocessing.Event()
-    process = multiprocessing.Process(target=target, args=(ready_flag, receive_flag))
-    process.daemon = True
-    process.start()
-    ready_flag.wait(9.0)
-    os.kill(process.pid, signal.SIGINT)
-    receive_flag.wait(9.0)
-    assert receive_flag.is_set()
-    receive_flag.clear()
-    os.kill(process.pid, signal.SIGTERM)
-    receive_flag.wait(9.0)
-    assert receive_flag.is_set()
-    receive_flag.clear()
-    os.kill(process.pid, signal.SIGINT)
-    receive_flag.wait(9.0)
-    assert receive_flag.is_set()
-    os.kill(process.pid, signal.SIGKILL)
-    process.join()
+    receive_flag = threading.Event()
+    with Sasha({signal.SIGUSR1: receive_flag.set}):
+        os.kill(os.getpid(), signal.SIGUSR1)
+        receive_flag.wait(9.0)
+        assert receive_flag.is_set()
+        receive_flag.clear()
+        os.kill(os.getpid(), signal.SIGUSR1)
+        receive_flag.wait(9.0)
+        assert receive_flag.is_set()

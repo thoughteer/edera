@@ -6,7 +6,7 @@ from edera.helpers.beanbag import split
 
 
 def colorful(bean_class):
-    from edera.demo.daemon.beans import colorbox
+    from . import colorbox
     return split(lambda: colorbox.get())(threadsafe(bean_class))
 
 

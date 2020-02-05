@@ -41,5 +41,5 @@ class F(DefaultScenario):
 @pytest.mark.parametrize("index", [1, 10, 100, 1000, 5000])
 def test_workflow_testifier_works_fast_enough(benchmark, index):
     workflow = WorkflowBuilder().build(T(i=index))
-    cache = InMemoryStorage()
-    benchmark(lambda: WorkflowTestifier(cache).process(workflow.clone()))
+    registry = InMemoryStorage()
+    benchmark(lambda: WorkflowTestifier(registry).process(workflow.clone()))

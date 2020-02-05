@@ -123,7 +123,7 @@ class WorkflowNormalizer(WorkflowProcessor):
             if target not in leafs and not solution[alpha[target][1]]
         }
         corrections = _get_target_corrections(targets, ccts, dcts)
-        if ccts or dcts:
+        if ccts or dcts:  # pragma: no cover
             raise WorkflowNormalizationError(
                 "some target corrections are not feasible: " + edera.helpers.render(ccts | dcts))
         logging.getLogger(__name__).debug(
@@ -155,7 +155,7 @@ class TargetOverridingTaskWrapper(TaskWrapper):
 
 def _check_targets(targets):
     constraint = edera.condition.derive_constraint(targets)
-    constraint_atoms = constraint.atoms()
+    constraint_atoms = tuple(constraint.atoms())
     constraint_function = sympy.Lambda(constraint_atoms, constraint)
     can_be_fully_complete = constraint_function(*[True for _ in constraint_atoms])
     can_be_fully_incomplete = constraint_function(*[False for _ in constraint_atoms])

@@ -1,7 +1,6 @@
 import logging
 
 from edera.condition import ConditionWrapper
-from edera.helpers import Phony
 from edera.routine import deferrable
 from edera.routine import routine
 from edera.task import TaskWrapper
@@ -36,8 +35,8 @@ class TaskSegregator(WorkflowProcessor):
 
     def process(self, workflow):
         for task in workflow:
-            if task is Phony:
-                pass
+            if task.phony:
+                continue
             color = workflow[task].annotation.get("color")
             workflow.replace(SegregatingTaskWrapper(task, color, self.__box))
 

@@ -9,8 +9,6 @@ import six
 
 import edera.helpers
 
-from edera.monitoring.watcher import MonitorWatcher
-
 
 URL_PATTERN = "https?://[^\\s]*"
 
@@ -57,34 +55,25 @@ class MonitoringUI(flask.Flask):
     def __configure(self):
 
         @self.template_filter("formatdatetime")
-        def format_datetime(dt):
+        def format_datetime(dt):  # pylint: disable=unused-variable
             offset = datetime.datetime.now() - datetime.datetime.utcnow()
             return (dt + offset).strftime("%Y-%m-%d %H:%M:%S")
 
         @self.template_filter("formattimedelta")
-        def format_timedelta(td):
+        def format_timedelta(td):  # pylint: disable=unused-variable
 
             def decompose(seconds):
                 if seconds >= 86400:
                     days = int(seconds / 86400)
-                    if days == 1:
-                        yield "1 day"
-                    else:
-                        yield "%d days" % days
+                    yield "1 day" if days == 1 else "%d days" % days
                     seconds -= days * 86400
                 if seconds >= 3600:
                     hours = int(seconds / 3600)
-                    if hours == 1:
-                        yield "1 hour"
-                    else:
-                        yield "%d hours" % hours
+                    yield "1 hour" if hours == 1 else "%d hours" % hours
                     seconds -= hours * 3600
                 if seconds >= 60:
                     minutes = int(seconds / 60)
-                    if minutes == 1:
-                        yield "1 minute"
-                    else:
-                        yield "%d minutes" % minutes
+                    yield "1 minute" if minutes == 1 else "%d minutes" % minutes
                     seconds -= minutes * 60
                 if seconds != 0:
                     yield "%.3f seconds" % seconds
@@ -92,20 +81,20 @@ class MonitoringUI(flask.Flask):
             return " ".join(decompose(td.total_seconds()))
 
         @self.template_filter("hashstring")
-        def hash_string(string):
+        def hash_string(string):  # pylint: disable=unused-variable
             return edera.helpers.sha1(string)[:6]
 
         @self.template_filter("selectkeys")
-        def select_keys(mapping, keys):
+        def select_keys(mapping, keys):  # pylint: disable=unused-variable
             return {key: mapping[key] for key in keys}
 
         @self.template_filter("highlight")
-        def highlight(message):
+        def highlight(message):  # pylint: disable=unused-variable
             link = "<a href='\g<0>'>\g<0></a>"
             return jinja2.Markup(re.sub(URL_PATTERN, link, str(jinja2.escape(message))))
 
         @self.route("/")
-        def index():
+        def index():  # pylint: disable=unused-variable
             core = self.watcher.load_snapshot_core()
             if core is None:
                 return flask.render_template("void.html", caption=self.caption)
@@ -120,7 +109,7 @@ class MonitoringUI(flask.Flask):
                 mode=flask.request.args.get("mode", "short"))
 
         @self.route("/report/<alias>")
-        def report(alias):
+        def report(alias):  # pylint: disable=unused-variable
             core = self.watcher.load_snapshot_core()
             if core is None or alias not in core.states:
                 flask.abort(404)
