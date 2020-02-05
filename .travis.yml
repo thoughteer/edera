@@ -1,5 +1,4 @@
 dist: xenial
-sudo: false
 if: tag IS blank
 services:
   - docker
@@ -13,9 +12,6 @@ env:
   - GROUP=unit
   - GROUP=integration
   - GROUP=performance
-matrix:
-  allow_failures:
-    - env: GROUP=performance
 install: pip install codecov tox-travis
 script: ./ci/run-tests.sh
 after_success: codecov
@@ -23,6 +19,8 @@ stages:
   - test
   - release
 jobs:
+  allow_failures:
+    - env: GROUP=performance
   include:
     - stage: release
       if: branch = master
