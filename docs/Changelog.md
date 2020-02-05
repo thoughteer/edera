@@ -1,5 +1,20 @@
 # Changelog
 
+### 0.12
+
+* Achieved 100% test coverage
+* Got rid of system tests
+* Separated the demo from the package completely
+* Prevented multiple parallel instances of `MonitorWatcher` from breaking the monitor
+* Upgraded `Daemon`
+    - Made it stop once all tests pass (in auto-testing mode)
+    - Made it interruptible (without signals)
+    - Embedded a `MonitorWatcher` into a dedicated process
+* Introduced `Timer` for `Routine`s and fixed error propagation in them
+* Introduced `ExtendAnnotation` for simpler declaration of tests
+* Altered the behaviour of `TagFilter` a bit
+* Fixed a few minor issues with third-party libraries
+
 ### 0.11.4
 
 * Fixed stale task detection
