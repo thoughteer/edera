@@ -351,9 +351,19 @@ class DemoPrelude(StaticDaemonModule):
     scheduling = {None: DaemonSchedule(execution_delay="PT1S")}
 
 
+class DemoDaemonAutoTester(DaemonAutoTester):
+
+    box = colorbox
+    registry = cache
+
+    def finish(self):
+        with fs.create("TESTED"):
+            pass
+
+
 class DemoDaemon(Daemon):
 
-    autotester = DaemonAutoTester(colorbox, cache) if arguments.test else None
+    autotester = DemoDaemonAutoTester() if arguments.test else None
     locker = locker
     cache = cache
     monitor = monitor

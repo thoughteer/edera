@@ -163,11 +163,22 @@ def test_daemon_functions_correctly_in_autotesting_mode(tmpdir):
         locker = DirectoryLocker(str(tmpdir.join("locks")))
         monitor = SQLiteStorage(str(tmpdir.join("monitor.db")))
 
-        colorbox = SimpleBox()
-        autotester = DaemonAutoTester(colorbox, cache)
-
         prelude = PreludeModule()
         main = MainModule()
+
+        colorbox = SimpleBox()
+
+        @property
+        def autotester(self):
+            return MyDaemonAutoTester()
+
+    class MyDaemonAutoTester(DaemonAutoTester):
+
+        box = MyDaemon.colorbox
+        registry = MyDaemon.cache
+
+        def finish(self):
+            fs().create("TESTED")
 
     def fs():
         color = MyDaemon.colorbox.get()
@@ -187,5 +198,6 @@ def test_daemon_functions_correctly_in_autotesting_mode(tmpdir):
     assert "prelude" in files
     assert "4707242e" in files
     assert tmpdir.join("4707242e").listdir()[0].basename == "main.1991-07-26T09:00:00"
+    assert "TESTED" in files
     watcher = MonitorWatcher(MyDaemon.monitor)
     assert len(watcher.load_snapshot_core().states) == 2

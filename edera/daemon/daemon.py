@@ -223,6 +223,13 @@ class Daemon(object):
             yield self.__consumer.run.defer()
 
         @routine
+        def run_watcher():
+            if self.monitor is not None:
+                watcher = MonitorWatcher(self.monitor)
+                delay = datetime.timedelta(seconds=1)
+                yield PersistentInvoker(watcher.run, delay=delay).invoke.defer()
+
+        @routine
         def run_support():
             if self.support is not None:
                 yield self.__run_module.defer("support", self.support)
@@ -231,22 +238,17 @@ class Daemon(object):
         def run_main():
             if self.prelude is not None:
                 yield self.__run_module.defer("prelude", self.prelude, sustain=False)
-            yield self.__run_module.defer("main", self.main, testable=True)
-
-        @routine
-        def run_watcher():
-            if self.monitor is not None:
-                watcher = MonitorWatcher(self.monitor)
-                delay = datetime.timedelta(seconds=1)
-                yield PersistentInvoker(watcher.run, delay=delay).invoke.defer()
+            regular = self.autotester is None
+            yield self.__run_module.defer("main", self.main, sustain=regular, testable=True)
+            self.autotester.finish()
 
         timeout = 2 * self.interruption_timeout
         yield MultiProcessInvoker(
             {
                 "consumer": run_consumer,
+                "watcher": run_watcher,
                 "launcher#support": run_support,
                 "launcher#main": run_main,
-                "watcher": run_watcher,
             },
             interruption_timeout=timeout).invoke.defer()
 
