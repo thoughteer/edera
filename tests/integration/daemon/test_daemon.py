@@ -109,7 +109,7 @@ def test_daemon_functions_correctly_in_production_mode(tmpdir):
     daemon = MyDaemon()
     process = multiprocessing.Process(target=daemon.run)
     process.start()
-    time.sleep(15)
+    time.sleep(30)
     process.terminate()
     process.join(15)
     files = set(path.basename for path in tmpdir.listdir())
@@ -118,7 +118,7 @@ def test_daemon_functions_correctly_in_production_mode(tmpdir):
     assert "monitor.db" in files
     assert "support" in files
     assert "prelude" in files
-    assert 3 <= len([name for name in files if name.startswith("main.")]) <= 11
+    assert len([name for name in files if name.startswith("main.")]) >= 3
     watcher = MonitorWatcher(MyDaemon.monitor)
     assert len(watcher.load_snapshot_core().states) >= 5
 
@@ -188,9 +188,9 @@ def test_daemon_functions_correctly_in_autotesting_mode(tmpdir):
     daemon = MyDaemon()
     process = multiprocessing.Process(target=daemon.run)
     process.start()
-    time.sleep(10)
+    time.sleep(30)
     process.terminate()
-    process.join(10)
+    process.join(15)
     files = set(path.basename for path in tmpdir.listdir())
     assert "cache.db" in files
     assert "locks" in files

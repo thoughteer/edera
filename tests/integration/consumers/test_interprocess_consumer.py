@@ -3,6 +3,7 @@ import multiprocessing
 
 import pytest
 
+from edera import Timer
 from edera.consumers import InterProcessConsumer
 from edera.exceptions import ConsumptionError
 from edera.invokers import MultiProcessInvoker
@@ -26,17 +27,12 @@ def test_consumer_handles_elements_correctly():
     def handle(element):
         result.put(element)
 
-    def interrupt():
-        if datetime.datetime.utcnow() > start_time + datetime.timedelta(seconds=5):
-            raise SystemExit
-
     consumer = InterProcessConsumer(handle, 3, datetime.timedelta(seconds=0.1))
     result = multiprocessing.Queue()
     invoker = MultiProcessInvoker({"c": consume, "r": consumer.run})
-    start_time = datetime.datetime.utcnow()
     try:
-        invoker.invoke[interrupt]()
-    except SystemExit:
+        invoker.invoke[Timer(datetime.timedelta(seconds=10))]()
+    except Timer.Timeout:
         pass
     assert [result.get(timeout=1.0) for _ in range(3)] == [1, 2, 3]
 
@@ -51,16 +47,11 @@ def test_consumer_handles_errors_silently():
         result.put(element)
         1 / 0  # should be ignored
 
-    def interrupt():
-        if datetime.datetime.utcnow() > start_time + datetime.timedelta(seconds=5):
-            raise SystemExit
-
     consumer = InterProcessConsumer(handle, 3, datetime.timedelta(seconds=0.1))
     result = multiprocessing.Queue()
     invoker = MultiProcessInvoker({"c": consume, "r": consumer.run})
-    start_time = datetime.datetime.utcnow()
     try:
-        invoker.invoke[interrupt]()
-    except SystemExit:
+        invoker.invoke[Timer(datetime.timedelta(seconds=10))]()
+    except Timer.Timeout:
         pass
     assert [result.get(timeout=1.0) for _ in range(3)] == [1, 1, 1]
