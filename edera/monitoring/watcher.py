@@ -7,6 +7,7 @@ import edera.helpers
 from edera.exceptions import ExcusableError
 from edera.exceptions import MonitorInconsistencyError
 from edera.exceptions import StorageOperationError
+from edera.flags import InterThreadFlag
 from edera.graph import Graph
 from edera.helpers import Serializable
 from edera.helpers.serializable import IntegerField
@@ -78,7 +79,7 @@ class MonitorWatcher(object):
         """
         checkpoint = self.__load_checkpoint()
         if checkpoint is None:
-            yield (MonitorWatcherCheckpoint({}, None, {}), MonitoringSnapshot.void())
+            yield (MonitorWatcherCheckpoint(None, {}, None, {}), MonitoringSnapshot.void())
             return
         core = self.__load_snapshot_core(version=checkpoint.core_version)
         payloads = {}
@@ -90,7 +91,7 @@ class MonitorWatcher(object):
     @routine
     def run(self, delay=datetime.timedelta(seconds=3)):
         """
-        Run the aggregation cycle.
+        Run an infinite aggregation cycle.
 
         Periodically
           - collects new snapshot updates
@@ -104,21 +105,34 @@ class MonitorWatcher(object):
         Args:
             delay (TimeDelta) - a delay between aggregations
                 Default is 3 seconds.
-
-        Raises:
-            MonitorInconsistencyError if some data is missing from the storage
-            StorageOperationError if something went wrong with the storage
         """
 
         @routine
-        def update():
+        def process():
+
+            def control():
+                if flag.raised:
+                    raise ExcusableError("recovery is needed")
+
+            @routine
+            def update():
+                try:
+                    yield advance.defer(checkpoint, snapshot)
+                except Exception as error:
+                    flag.up()
+                    raise ExcusableError(error)
+
+            flag = InterThreadFlag()
             try:
-                yield aggregate.defer()
+                checkpoint, snapshot = yield self.recover.defer()
             except StorageOperationError as error:
-                raise ExcusableError(error)
+                raise ExcusableError(error)  # pragma: no cover
+            yield PersistentInvoker(update, delay=delay).invoke[control].defer()
 
         @routine
-        def aggregate():
+        def advance(checkpoint, snapshot):
+            affected = set()
+            next_checkpoint = checkpoint.clone()
             agents = MonitoringAgent.discover(self.monitor)
             for agent in agents:
                 yield
@@ -126,35 +140,34 @@ class MonitorWatcher(object):
                 for version, update in reversed(agent.pull(since=cursor)):
                     for task in update.apply(snapshot, agent.name):
                         affected.add(snapshot.core.aliases[task])
-                    checkpoint.cursors[agent.name] = version + 1
-            augment()
+                    next_checkpoint.cursors[agent.name] = version + 1
+            last_checkpoint = self.__load_checkpoint()
+            if last_checkpoint and last_checkpoint.version > checkpoint.version:
+                raise RuntimeError("snapshot can be no longer valid")  # pragma: no cover
+            augment(snapshot)
             yield
-            checkpoint.core_version = self.monitor.put("core", snapshot.core.serialize())
+            next_checkpoint.core_version = self.monitor.put("core", snapshot.core.serialize())
             for alias in set(affected):
                 yield
                 payload = snapshot.payloads[alias]
                 new_payload_version = self.monitor.put("payload/" + alias, payload.serialize())
-                affected.remove(alias)
-                committed.add(alias)
-                checkpoint.payload_versions[alias] = new_payload_version
-            new_checkpoint_version = self.monitor.put("checkpoint", checkpoint.serialize())
-            self.monitor.delete("checkpoint", till=new_checkpoint_version)
-            self.monitor.delete("core", till=last_stable_checkpoint.core_version)
-            for alias in set(committed):
+                next_checkpoint.payload_versions[alias] = new_payload_version
+            next_checkpoint.version = self.monitor.put("checkpoint", next_checkpoint.serialize())
+            self.monitor.delete("checkpoint", till=next_checkpoint.version)
+            self.monitor.delete("core", till=checkpoint.core_version)
+            for alias in set(affected):
                 yield
-                if alias not in last_stable_checkpoint.payload_versions:
+                if alias not in checkpoint.payload_versions:
                     continue
-                self.monitor.delete(
-                    "payload/" + alias, till=last_stable_checkpoint.payload_versions[alias])
-                committed.remove(alias)
+                self.monitor.delete("payload/" + alias, till=checkpoint.payload_versions[alias])
             for agent in agents:
-                if agent.name not in last_stable_checkpoint.cursors:
+                if agent.name not in checkpoint.cursors:
                     continue
                 yield
-                agent.drop(till=last_stable_checkpoint.cursors[agent.name])
-            last_stable_checkpoint.update(checkpoint)
+                agent.drop(till=checkpoint.cursors[agent.name])
+            checkpoint.update(next_checkpoint)
 
-        def augment():
+        def augment(snapshot):
             graph = Graph()
             for alias in snapshot.core.states:
                 graph.add(alias)
@@ -173,15 +186,12 @@ class MonitorWatcher(object):
                 state.completed = True
             snapshot.core.timestamp = edera.helpers.now()
 
-        checkpoint, snapshot = yield self.recover.defer()
-        last_stable_checkpoint = checkpoint.clone()
-        affected = set()
-        committed = set()
-        yield PersistentInvoker(update, delay=delay).invoke.defer()
+        yield PersistentInvoker(process, delay=delay).invoke.defer()
 
     def __load_checkpoint(self):
         records = self.monitor.get("checkpoint", limit=1)
-        return MonitorWatcherCheckpoint.deserialize(records[0][1]) if records else None
+        if records:
+            return MonitorWatcherCheckpoint.deserialize(records[0][0], records[0][1])
 
     def __load_task_payload(self, alias, version=None):
         arguments = {"limit": 1} if version is None else {"since": version}
@@ -203,6 +213,7 @@ class MonitorWatcherCheckpoint(Serializable):
     A checkpoint descriptor that contains information needed for recovery.
 
     Attributes:
+        version (Optional[Integer]) - the version of the checkpoint (non-serializable)
         cursors (Mapping[String, Integer]) - the cursors (update versions) by agent name
         core_version (Optional[Integer]) - the version of the snapshot core
             Could be $None if there were no saved snapshots.
@@ -213,13 +224,15 @@ class MonitorWatcherCheckpoint(Serializable):
     core_version = OptionalField(IntegerField)
     payload_versions = MappingField(StringField, IntegerField)
 
-    def __init__(self, cursors, core_version, payload_versions):
+    def __init__(self, version, cursors, core_version, payload_versions):
         """
         Args:
+            version (Optional[Integer])
             cursors (Mapping[String, Integer])
             core_version (Optional[Integer])
             payload_versions (Mapping[String, Integer])
         """
+        self.version = version
         self.cursors = cursors
         self.core_version = core_version
         self.payload_versions = payload_versions
@@ -232,7 +245,13 @@ class MonitorWatcherCheckpoint(Serializable):
             MonitorWatcherCheckpoint
         """
         return MonitorWatcherCheckpoint(
-            dict(self.cursors), self.core_version, dict(self.payload_versions))
+            self.version, dict(self.cursors), self.core_version, dict(self.payload_versions))
+
+    @classmethod
+    def deserialize(cls, version, string):
+        result = super(MonitorWatcherCheckpoint, cls).deserialize(string)
+        result.version = version
+        return result
 
     def update(self, checkpoint):
         """
@@ -243,6 +262,7 @@ class MonitorWatcherCheckpoint(Serializable):
         Args:
             checkpoint (MonitorWatcherCheckpoint) - a checkpoint to borrow data from
         """
+        self.version = checkpoint.version
         self.cursors = checkpoint.cursors
         self.core_version = checkpoint.core_version
         self.payload_versions = checkpoint.payload_versions

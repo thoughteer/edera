@@ -40,7 +40,9 @@ class MongoStorage(Storage):
 
     @property
     def collection(self):
-        result = self.database[self.__collection]
+        result = self.database[self.__collection].with_options(
+            read_concern=pymongo.read_concern.ReadConcern("majority"),
+            write_concern=pymongo.write_concern.WriteConcern("majority"))
         if not self.__indexed:
             result.create_index([("key", pymongo.ASCENDING), ("version", pymongo.ASCENDING)])
             self.__indexed = True

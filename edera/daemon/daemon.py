@@ -225,9 +225,7 @@ class Daemon(object):
         @routine
         def run_watcher():
             if self.monitor is not None:
-                watcher = MonitorWatcher(self.monitor)
-                delay = datetime.timedelta(seconds=1)
-                yield PersistentInvoker(watcher.run, delay=delay).invoke.defer()
+                yield MonitorWatcher(self.monitor).run.defer(delay=datetime.timedelta(seconds=1))
 
         @routine
         def run_support():
