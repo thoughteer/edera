@@ -2,11 +2,14 @@ import datetime
 
 import pytest
 
+import edera.helpers
+
 from edera import routine
 from edera import Timer
 from edera.exceptions import MonitorInconsistencyError
 from edera.invokers import MultiThreadedInvoker
 from edera.monitoring import MonitoringAgent
+from edera.monitoring.snapshot import TaskLogUpdate
 
 
 def test_monitor_watcher_works_correctly_even_after_restart(monitor, consumer, watcher):
@@ -21,7 +24,9 @@ def test_monitor_watcher_works_correctly_even_after_restart(monitor, consumer, w
     assert not core.states[core.aliases["Y"]].completed
     payload = watcher.load_task_payload(core.aliases["X"])
     assert payload.dependencies == {core.aliases["O"]}
-    MonitoringAgent("newbie", monitor, consumer).register()
+    newbie = MonitoringAgent("newbie", monitor, consumer)
+    newbie.register()
+    newbie.push(TaskLogUpdate("O", "oops", edera.helpers.now()))
     timer = Timer(datetime.timedelta(milliseconds=100))
     try:
         MultiThreadedInvoker({"w": watch}).invoke[timer]()
