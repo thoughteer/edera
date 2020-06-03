@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.12.1
+
+* Fixed a major race condition issue with `MonitorWatcher`
+* Hid stale tasks from the main monitoring UI page
+* Adapted the code to SympPy 1.6
+
 ### 0.12
 
 * Achieved 100% test coverage
