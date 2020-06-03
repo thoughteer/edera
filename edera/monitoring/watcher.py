@@ -126,7 +126,7 @@ class MonitorWatcher(object):
             try:
                 checkpoint, snapshot = yield self.recover.defer()
             except StorageOperationError as error:
-                raise ExcusableError(error)
+                raise ExcusableError(error)  # pragma: no cover
             yield PersistentInvoker(update, delay=delay).invoke[control].defer()
 
         @routine
@@ -143,15 +143,15 @@ class MonitorWatcher(object):
                     next_checkpoint.cursors[agent.name] = version + 1
             last_checkpoint = self.__load_checkpoint()
             if last_checkpoint and last_checkpoint.version > checkpoint.version:
-                raise RuntimeError("snapshot is no longer valid")
+                raise RuntimeError("snapshot can be no longer valid")  # pragma: no cover
             augment(snapshot)
             yield
-            checkpoint.core_version = self.monitor.put("core", snapshot.core.serialize())
+            next_checkpoint.core_version = self.monitor.put("core", snapshot.core.serialize())
             for alias in set(affected):
                 yield
                 payload = snapshot.payloads[alias]
                 new_payload_version = self.monitor.put("payload/" + alias, payload.serialize())
-                checkpoint.payload_versions[alias] = new_payload_version
+                next_checkpoint.payload_versions[alias] = new_payload_version
             next_checkpoint.version = self.monitor.put("checkpoint", next_checkpoint.serialize())
             self.monitor.delete("checkpoint", till=next_checkpoint.version)
             self.monitor.delete("core", till=checkpoint.core_version)
